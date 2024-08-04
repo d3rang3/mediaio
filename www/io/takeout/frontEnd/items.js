@@ -1,6 +1,3 @@
-let picker = null;
-
-
 $(document).ready(function () {
     // Search
 
@@ -57,46 +54,8 @@ $(document).ready(function () {
             searchInput.dispatchEvent(new Event("input"));
         });
     });
-
-    picker = loadPicker("#datepicker");
 });
 
-function loadPicker(calendarId, startDate = new Date(), endDate = null) {
-    startDate.setHours(0, 0, 0, 0); // Set the start date to the beginning of the day
-    if (endDate == null) {
-        endDate = new Date();
-        endDate.setHours(0, 0, 0, 0); // Set the end date to the beginning of the day
-        endDate.setDate(endDate.getDate() + 2); // Add one day to the end date
-    }
-
-    return new easepick.create({
-        element: calendarId,
-        css: [
-            "https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css",
-            // Include local css file
-            "calendarSelect.css"
-        ],
-        zIndex: 10,
-        autoApply: false,
-        format: 'YYYY-MM-DD',
-        locale: {
-            cancel: 'Mégsem',
-            apply: 'Mehet',
-        },
-        lang: "hu",
-        LockPlugin: {
-            minDate: new Date(),
-        },
-        RangePlugin: {
-            startDate: startDate,
-            endDate: endDate,
-        },
-        plugins: [
-            "RangePlugin",
-            "LockPlugin",
-        ]
-    });
-}
 
 async function loadItems() {
     const itemsList = document.getElementById("itemsList");

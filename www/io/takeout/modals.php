@@ -70,43 +70,6 @@
 </div>
 
 
-<!-- plannedEventsModal -->
-<div class="modal fade" id="plannedEventsModal" tabindex="-1" role="dialog" aria-labelledby="plannedEventsModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="plannedEventsModalLabel">Elvitel adatai</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-2">
-                    <label class="form-label" id="plannedEventsDescription"></label>
-                </div>
-                <div id="timeRangeEdit">
-                    <!--- Time range -->
-                </div>
-                <!-- Items -->
-                <div class="d-flex align-items-center justify-content-between" id="itemsEditHeader">
-                    
-                </div>
-                <div class="mb-3" id="plannedEventsItems"></div>
-
-                <!-- Planner name -->
-                <div class="">
-                    <b><label class="" id="plannedEventOwner"></label></b>
-                </div>
-                <div id="plannedEventsLoading" class="spinner-grow text-secondary" role="status"></div>
-            </div>
-            <div class="modal-footer" id="plannedEventsFooter">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 
 <!-- Presets Modal -->
 <div class="modal fade" id="presets_Modal" tabindex="-1" role="dialog" aria-labelledby="presets_ModalLabel"

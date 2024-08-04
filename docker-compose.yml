@@ -1,7 +1,7 @@
 services:
   nginx:
     build: ./nginx/
-    container_name: nginx
+    container_name: amok-nginx
     ports:
       - 80:80
       - 443:443
@@ -16,7 +16,7 @@ services:
 
   php:
     build: ./php/
-    container_name: php
+    container_name: amok-php
     expose:
       - 9000
     links:
@@ -30,14 +30,14 @@ services:
 
   app-data:
     image: php:8.2-fpm
-    container_name: app-data
+    container_name: amok-app-data
     volumes:
       - ./www/:/var/www/
     command: "true"
 
   mysql:
-    image: mysql:5.7.8
-    container_name: mysql
+    image: mysql:8.4
+    container_name: amok-mysql
     restart: unless-stopped
     env_file: data.env
     environment:
@@ -53,7 +53,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin-container
+    container_name: amok-phpmyadmin-container
     restart: unless-stopped
     #links:
     #    - mysql

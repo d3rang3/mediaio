@@ -59,21 +59,8 @@ error_reporting(E_ALL ^ E_NOTICE);
     <?php include "modals.php"; ?>
 
 
-    <ul class="nav nav-underline mt-1 mb-2" id="selectMenu" role="tablist">
-        <li class="nav-item" role="presentation">
-            <a class="nav-link active" href="" id="takeout-tab" data-bs-toggle="tab" data-bs-target="#takeout-tab-pane"
-                aria-current="page">
-                <h2 class="rainbow" id="takeoutPage_Title" style="font-size: 40px; margin: 0;">Elvitel</h2>
-            </a>
-        </li>
-        <h2 class="rainbow"> - </h2>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="" onclick="loadTakeOutPlanner();" id="prepared-tab" data-bs-toggle="tab"
-                data-bs-target="#prepared-tab-pane">
-                <h2 class="rainbow" id="reservationsPage_Title" style="margin: 0; font-size: 40px;">Előjegyzések</h2>
-            </a>
-        </li>
-    </ul>
+
+    <h2 class="rainbow" id="takeoutPage_Title">Elvitel</h2>
     <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="takeout-tab-pane" role="tabpanel" aria-labelledby="takeout-tab"
             tabindex="0">
@@ -206,10 +193,7 @@ error_reporting(E_ALL ^ E_NOTICE);
     var badge = document.getElementById("selectedCount");
 
     $(document).ready(function () {
-
-        restoreActiveTab();
         loadPage();
-
 
 
         $('#itemsList').scroll(function () {
@@ -233,191 +217,18 @@ error_reporting(E_ALL ^ E_NOTICE);
 
 
     });
-
-    // On page load
-    function restoreActiveTab() {
-        // Check if there is a tab id stored in local storage
-        var activeTab = localStorage.getItem('activeTab');
-        if (activeTab) {
-            if (activeTab == "prepared-tab") {
-                loadTakeOutPlanner();
-            }
-            // If there is, activate the tab with that id
-            var tab = document.getElementById(activeTab);
-            var bsTab = new bootstrap.Tab(tab);
-            bsTab.show();
-        }
-    };
-
-    //Loads reservation items from the database, and selects them
-    async function loadReservation(reservationProject) {
-        // Select the takeout tab
-        document.getElementById('takeout-tab').click();
-        
-        // Only have one tab available
-        document.getElementById('selectMenu').children[1].remove();
-        document.getElementById('selectMenu').children[1].remove();
-
-
-
-        const response = await $.ajax({
-            url: "../ItemManager.php",
-            method: "POST",
-            data: {
-                mode: "listTakeoutItems",
-                eventID: reservationProject,
-            }
-        });
-
-
-        if (response == 404) {
-            errorToast("Nem található ilyen előjegyzés!");
-        }
-        if (response == 403) {
-            errorToast("Nincs jogosultságod ennek a tartalomnak a megtekintéséhez!");
-        }
-        else {
-            const items = JSON.parse(response);
-            Promise.all(items.map(item => {
-                return new Promise((resolve, reject) => {
-                    selectorItem = {
-                        UID: item.uid,
-                        Nev: item.name,
-                    };
-                    toggleSelectItem(selectorItem);
-                    resolve();
-                });
-            }));
-
-            //Change the title of the menu to the reservations's name.
-            loadReservationData(reservationProject, "get").then((reservations) => {
-                for (project of reservations) {
-                    if (project["ID"] == reservationProject) {
-                        document.getElementById("takeoutPage_Title").innerText = project["Name"];
-                    }
-                }
-
-                document.getElementById("takeout2BTN").innerText = "Előjegyzés módosítása";
-                // For mobile
-                document.getElementById("show_selected").innerText = "Előjegyzés módosítása";
-                document.getElementById("takeout2BTN-mobile").innerText = "Előjegyzés módosítása";
-                //Pre-fill takeoutsettingsmodal
-                document.getElementById("plannedName").value = project["Name"];
-                picker.setDate(project["StartTime"]);
-                picker.setEndDate(project["ReturnTime"]);
-                document.getElementById("plannedDesc").value = project["Description"];
-
-                //Change the button's behaviour to update the reservation
-                document.getElementById("submitTakeoutButton").setAttribute("onclick", "updateTakeout()");
-
-            });
-
-
-        }
-    }
-
     async function loadPage() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const reservationProject = urlParams.get('reservationProject');
-        if (reservationProject) {
-            cookiesEnabled = false;
-        }
         //Load items
         await loadItems();
         //Load selected items
         await loadTooltips();
-
-        //await loadReservationData();
-
-        if (reservationProject) {
-            loadReservation(reservationProject);
-            //disable cookie updates 
-        }
-        //check for reservation variable in URL
-
-
     }
 
-
-    //Obtains a list of ID's from the server to which ID's the user has access to
-    async function loadReservationData(id = -1, method = "fillTable") {
-        const response = await $.ajax({
-            url: "../ItemManager.php",
-            method: "POST",
-            data: {
-                mode: "listReservationData",
-                id: id
-            }
-        });
-
-        //for each returned ID, add button with the speifig id as a href to userReservations_selectorButton
-
-        reservations = JSON.parse(response);
-
-        if (method == "get") {
-            return reservations;
-        }
-
-        for (project of JSON.parse(response)) {
-            var link = document.createElement("a");
-            link.classList.add("dropdown-item");
-
-            link.innerText = project["Name"];
-            link.href = "./?reservationProject=" + project["ID"];
-            var listItem = document.createElement("li");
-            listItem.appendChild(link);
-            document.getElementById("userReservations_selectorList").appendChild(listItem);
-        }
-
-    }
 
     // Load tooltips
     async function loadTooltips() {
         //Load tooltips
         $('[data-bs-toggle="tooltip"]').tooltip();
-    }
-
-    //Updates an existing reservation
-    async function updateTakeout() {
-        takeoutItems = getTakeoutItemsArray();
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const reservationProject = urlParams.get('reservationProject');
-
-        // Create an ajax request to update the reservation
-        const response = await $.ajax({
-            url: "../ItemManager.php",
-            method: "POST",
-            data: {
-                mode: "change_Takeout",
-                items: JSON.stringify(takeoutItems),
-                id: reservationProject,
-                newProjectName: document.getElementById("plannedName").value,
-                newStartTime: formatDateTime(picker.getStartDate()),
-                newEndTime: formatDateTime(picker.getEndDate()),
-                newDescription: document.getElementById("plannedDesc").value,
-            }
-        });
-
-        if (response == 200) {
-            //Get the returned output
-            successToast("Sikeres módosítás!");
-            $('#takeoutSettingsModal').modal('hide');
-
-            //Wait for the modal to close
-            setTimeout(() => {
-                //Redirect to the main page
-                window.location.href = ".";
-            }, 1000);
-        } else if (response == 410) {
-            warningToast("Nem történt változás")
-        } else {
-            console.log(response);
-            console.log(response == 200);
-            errorToast("Valami hiba történt a módosítás során!");
-        }
-
-
     }
 
     function getTakeoutItemsArray() {
@@ -452,56 +263,16 @@ error_reporting(E_ALL ^ E_NOTICE);
         takeoutItems = getTakeoutItemsArray();
         console.log(takeoutItems);
 
-        // Planned data
-        const Name = document.getElementById("plannedName")?.value || "";
-
-        let StartingDate = picker.getStartDate();
-
-        if (StartingDate == "") {
-            errorToast("Nem adtál meg kezdési időpontot!");
-            return;
-        }
-
-        let EndDate = picker.getEndDate();
-
-        if (EndDate == "") {
-            errorToast("Nem adtál meg visszahozás időpontot!");
-            return;
-        }
-        if (EndDate < StartingDate) {
-            errorToast("A visszahozás időpontja nem lehet korábbi a kezdetinél!");
-            return;
-        }
-        // Format the dates in 'YYYY-MM-DD HH:MM:SS' format
-        StartingDate = formatDateTime(StartingDate);
-        EndDate = formatDateTime(EndDate);
-
-
-
-
-        const Desc = document.getElementById("plannedDesc").value;
-
-        const PlannedData = {
-            Name: Name,
-            StartingDate: StartingDate,
-            EndDate: EndDate,
-            Desc: Desc,
-        };
-
         const response = await $.ajax({
             url: "../ItemManager.php",
             method: "POST",
             data: {
                 mode: "stageTakeout",
                 items: JSON.stringify(takeoutItems),
-                plannedData: JSON.stringify(PlannedData),
             }
         });
 
-        if (response == 409) {
-            errorToast("Az általad megadott időre nem elérhető valamelyik eszközt!");
-        }
-        else if (response == 200) {
+        if (response == 200) {
             deselect_all();
             if (<?php echo in_array("admin", $_SESSION["groups"]) ? 1 : 0; ?>) {
                 successToast("Sikeres elvitel!");
