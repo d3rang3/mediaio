@@ -236,21 +236,6 @@
     margin-top: 0;
 }
 
-.planned {
-    animation: orangeColor 1s infinite alternate;
-}
-
-.planned-card {
-    animation: plannedBackground 2s infinite alternate;
-}
-
-.taken {
-    animation: grayColor 1s infinite alternate;
-}
-
-.taken-card {
-    animation: takenBackground 2s infinite alternate;
-}
 
 .differentUser {
     color: rgb(90, 90, 90);
@@ -279,25 +264,6 @@
     }
 }
 
-@keyframes plannedBackground {
-    20% {
-        background-color: white;
-    }
-
-    100% {
-        background-color: rgb(226, 179, 78);
-    }
-}
-
-@keyframes takenBackground {
-    20% {
-        background-color: white;
-    }
-
-    100% {
-        background-color: rgb(179, 179, 179);
-    }
-}
 
 
 /* Calendar */

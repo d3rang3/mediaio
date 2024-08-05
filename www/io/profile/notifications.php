@@ -73,21 +73,6 @@ global $notif_settings;
   <div class="container d-flex justify-content-center">
     <div class="d-flex justify-content-center flex-column" style="font-size: 18px;">
       <div class="form-check form-switch mb-1">
-        <input class="form-check-input" type="checkbox" role="switch" id="plannedTakeoutInAWeek" <?php echo $notif_settings['plannedTakeoutInAWeek'] ? "checked" : null; ?>>
-        <label class="form-check-label" for="plannedTakeoutInAWeek">Időzett elvitel előtt egy héttel</label>
-      </div>
-      <div class="form-check form-switch mb-1">
-        <input class="form-check-input" type="checkbox" role="switch" id="plannedTakeoutInADay" checked disabled>
-        <label class="form-check-label" for="plannedTakeoutInADay">Időzett elvitel előtt egy
-          nappal</label>
-      </div>
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" role="switch" id="plannedTakeoutEnd" checked disabled>
-        <label class="form-check-label" for="plannedTakeoutEnd">Tárgyak visszahozatala előtt egy
-          nappal</label>
-      </div>
-
-      <div class="form-check form-switch mb-1">
         <input class="form-check-input" type="checkbox" role="switch" id="newProject" <?php echo $notif_settings['newProject'] ? "checked" : null; ?>>
         <label class="form-check-label" for="newProject">Új projekt (része vagy)</label>
       </div>
@@ -129,7 +114,6 @@ global $notif_settings;
     // Schedule the function to run after 1 second (1000 milliseconds)
     timeoutId = setTimeout(async () => {
       const settings = {
-        plannedTakeoutInAWeek: document.getElementById('plannedTakeoutInAWeek').checked,
         newProject: document.getElementById('newProject').checked,
         newTask: document.getElementById('newTask').checked,
         taskEndReminder: document.getElementById('taskEndReminder').checked
@@ -165,9 +149,6 @@ function getNotificationSettings()
   $notif_settings = json_decode($notif_settings, true);
 
   // Backward compatibility
-  if (!isset($notif_settings['plannedTakeoutInAWeek'])) {
-    $notif_settings['plannedTakeoutInAWeek'] = false;
-  }
   if (!isset($notif_settings['newProject'])) {
     $notif_settings['newProject'] = false;
   }

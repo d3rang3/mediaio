@@ -238,8 +238,8 @@ async function submitRetrieve() {
         }
     });
 
-    if (response == 200) {
-        successToast("Sikeres visszahozás!");
+    if (response == 200 || response == 201) {
+        response == 200 ? successToast("Sikeres a tárgyak visszavétele!") : warningToast("Sikeres visszavétel, jóváhagyásra vár!");
         $('#confirmModal').modal('hide');
         document.getElementById("intactItems").checked = false;
         document.getElementById("manual_Retrieve").checked = false;

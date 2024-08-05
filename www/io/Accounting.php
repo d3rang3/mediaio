@@ -83,7 +83,9 @@ class Accounting
             $notificationSettings ? $sql .= ", `AdditionalData`" : null; // Get the notification settings if requested
             $sql .= " FROM `users` WHERE `idUsers` = " . $userID . ";";
         } else {
-            $sql = "SELECT `idUsers`, `usernameUsers`, `firstName`, `lastName`, `teleNum`, `emailUsers` FROM `users`;";
+            $sql = "SELECT `idUsers`, `usernameUsers`, `firstName`, `lastName`, `teleNum`, `emailUsers`";
+            $notificationSettings ? $sql .= ", `AdditionalData`" : null; // Get the notification settings if requested
+            $sql .= " FROM `users`;";
         }
         $connection = Database::runQuery_mysqli();
         $result = $connection->query($sql);

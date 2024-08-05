@@ -22,7 +22,6 @@
   <link href='style.scss' rel='stylesheet' />
 
   <script src="./frontEnd/pathFinder.js" type="text/javascript"></script>
-  <script src="./frontEnd/qrManager.js" type="text/javascript"></script>
 
 </head>
 <div class="UI_loading"><img class="loadingAnimation" src="../utility/mediaIO_loading_logo.gif"></div>

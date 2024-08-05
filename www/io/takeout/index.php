@@ -118,8 +118,7 @@ error_reporting(E_ALL ^ E_NOTICE);
                                 <span id="selectedCount" class="badge bg-danger">0</span>
                             </button>
                             <button class="btn btn-sm btn-success col-lg-auto mb-1" id="takeout2BTN"
-                                style='margin-bottom: 6px' data-bs-target="#takeoutSettingsModal"
-                                data-bs-toggle="modal">Mehet</button>
+                                style='margin-bottom: 6px' onclick="submitTakeout()">Mehet</button>
                             <button class="btn btn-sm btn-danger col-lg-auto mb-1 text-nowrap" id="clear"
                                 style='margin-bottom: 6px' data-bs-target="#clear_Modal" data-bs-toggle="modal">Összes
                                 törlése</button>
@@ -161,8 +160,7 @@ error_reporting(E_ALL ^ E_NOTICE);
                                 <div class="col-12 selectedList" id="offcanvasList">
                                 </div>
                                 <button class="btn btn-sm btn-success col-lg-auto mb-1" data-bs-dismiss="offcanvas"
-                                    id="takeout2BTN-mobile" data-bs-target="#takeoutSettingsModal"
-                                    data-bs-toggle="modal">Mehet</button>
+                                    id="takeout2BTN-mobile" onclick="submitTakeout()">Mehet</button>
                             </div>
                         </div>
                     </div>
@@ -236,11 +234,10 @@ error_reporting(E_ALL ^ E_NOTICE);
 
         if (selectedItems.length == 0) {
             errorToast("Nincs kiválasztva semmi!");
-            $('#takeoutSettingsModal').modal('hide');
             setTimeout(() => {
                 document.getElementById("search").focus();
             }, 500);
-            return;
+            return 404;
         }
 
         return Array.from(document.getElementsByClassName("selected")).map(item => ({
@@ -261,7 +258,9 @@ error_reporting(E_ALL ^ E_NOTICE);
     async function submitTakeout() {
 
         takeoutItems = getTakeoutItemsArray();
-        console.log(takeoutItems);
+        if (takeoutItems == 404) {
+            return;
+        }
 
         const response = await $.ajax({
             url: "../ItemManager.php",

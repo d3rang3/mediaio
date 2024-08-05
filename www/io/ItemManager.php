@@ -37,18 +37,6 @@ class takeOutManager
     // Set the ackBy field to the user's name if the user is an admin
     $ackBy = $acknowledged ? $_SESSION['UserUserName'] : NULL;
 
-    try {
-      // TAKELOG
-      $sql = "INSERT INTO takelog (`ID`, `Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
-            VALUES (NULL, '$currDate', '$UID', '$takeoutItems', 'OUT', $acknowledged, '$ackBy')";
-      $connection->query($sql);
-
-    } catch (\Exception $e) {
-      echo "Error: " . $e->getMessage();
-      return 500;
-    }
-
-
     // Change every item as taken in the database
     $takeoutItems = json_decode($takeoutItems, true);
 
@@ -69,13 +57,30 @@ class takeOutManager
 
       // Commit transaction
       $connection->commit();
-      $connection->close();
     } catch (\Exception $e) {
       // Rollback transaction if there is an error
       $connection->rollback();
       printf("Error message: %s\n", $e->getMessage());
+      $connection->close();
+      return 500;
     }
 
+    try {
+      $takeoutItems = json_encode($takeoutItems);
+      $connection->begin_transaction();
+
+      // TAKELOG
+      $sql = "INSERT INTO takelog (`ID`, `Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
+            VALUES (NULL, '$currDate', '$UID', '$takeoutItems', 'OUT', $acknowledged, '$ackBy')";
+      $connection->query($sql);
+
+      $connection->commit();
+    } catch (\Exception $e) {
+      echo "Error: " . $e->getMessage();
+      $connection->close();
+      return 500;
+    }
+    $connection->close();
     return 200;
   }
 
@@ -230,7 +235,7 @@ class retrieveManager
       $connection->commit();
 
       // All good, return OK message
-      echo 200;
+      echo $acknowledged ? 200 : 201;
       exit();
     } catch (\Exception $e) {
       // Rollback transaction if there is an error
@@ -242,6 +247,52 @@ class retrieveManager
 
 class itemDataManager
 {
+
+  // Change owner of items
+  static function changeOwner($items, $newUserID)
+  {
+    // Only admins can change the owner of items
+    if (!in_array("admin", $_SESSION['groups'])) {
+      return 403;
+    }
+
+    try {
+      $connection = Database::runQuery_mysqli();
+      $connection->begin_transaction(); // Real backend developers use transactions XD
+
+      $newUserID = intval($newUserID);
+
+      date_default_timezone_set('Europe/Budapest');
+      $currDate = date("Y/m/d H:i:s");
+
+      // Update takelog
+      $sql = "INSERT INTO `takelog` (`Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
+        VALUES (?, ?, ?, 'CHANGE', 1, ?);";
+      $stmt = $connection->prepare($sql);
+      $stmt->bind_param("siss", $currDate, $newUserID, $items, $_SESSION['UserUserName']);
+      $stmt->execute();
+
+      $items = json_decode($items, true);
+      $items = array_map(function ($item) {
+        return $item['uid'];
+      }, $items);
+
+      $sql = "UPDATE leltar SET RentBy=? WHERE UID=?";
+      $stmt = $connection->prepare($sql);
+      $stmt->bind_param("ss", $newUserID, $item);
+      foreach ($items as $item) {
+        $stmt->execute();
+      }
+
+      $connection->commit();
+    } catch (\Exception $e) {
+      echo "Error: " . $e->getMessage();
+      $connection->rollback();
+      return 500;
+    }
+
+    return 200;
+  }
 
   // ______________________________________________________________________________________
 
@@ -552,10 +603,19 @@ class itemHistoryManager
 
   static function getItemHistory($itemUID)
   {
-    $sql = "SELECT * FROM `takelog` WHERE JSON_CONTAINS(Items, " . "'" . "{" . '"uid" : "' . $itemUID . '"}' . "'" . ") ORDER BY `Date` DESC";
+    if (empty($itemUID)) {
+      throw new \Exception("Item UID cannot be empty");
+    }
+
+    // Construct the JSON string
+    $jsonString = json_encode(['uid' => $itemUID]);
+
+    // Use prepared statements
+    $sql = "SELECT * FROM `takelog` WHERE JSON_CONTAINS(Items, ?) ORDER BY `Date` DESC";
     //Get a new database connection
     $connection = Database::runQuery_mysqli();
     $stmt = $connection->prepare($sql);
+    $stmt->bind_param('s', $jsonString);
     $stmt->execute();
     $result = $stmt->get_result();
     $rows = array();
@@ -598,6 +658,11 @@ if (isset($_POST['mode'])) {
   }
   if ($_POST['mode'] == 'retrieveStaging') {
     echo retrieveManager::stageRetrieve();
+  }
+
+  //Handles item ownership change
+  if ($_POST['mode'] == 'changeOwner') {
+    echo itemDataManager::changeOwner($_POST['items'], $_POST['newOwner']);
   }
 
   if ($_POST['mode'] == 'confirmItems') {

@@ -154,8 +154,7 @@ class projectManager
                 $resultItems[$key]['canEdit'] = 0;
             }
         }
-        echo (json_encode($resultItems));
-        exit();
+        return json_encode($resultItems);
     }
 
     static function getProject()
@@ -200,9 +199,9 @@ class projectManager
 
     // TASKS
 
-    static function getProjectTask()
+    static function getProjectTask($taskID = null)
     {
-        if ($_POST['task_id'] == null) {
+        if ($taskID == null) {
             // Get all tasks of the project
             $sql = "SELECT pc.*, p.Deadline as ProjectDeadline, p.managerUID, p.NAS_path as NASPath,
                     u1.firstName as CreatorFirstName, u1.lastName as CreatorLastName, u1.usernameUsers as CreatorUsername, 
@@ -222,18 +221,19 @@ class projectManager
                     LEFT JOIN am_projects.projects p ON pc.ProjectId = p.ID
                     LEFT JOIN arpadmedia.users u1 ON pc.AddedByUID = u1.idUsers
                     LEFT JOIN arpadmedia.users u2 ON pc.EditedByUID = u2.idUsers
-                    WHERE pc.ID=" . $_POST['task_id'] . ";";
+                    WHERE pc.ID=" . $taskID . ";";
         }
 
         $connection = Database::runQuery_mysqli(self::$schema);
         $result = $connection->query($sql);
 
-        if ($_POST['task_id'] != null) {
+        if ($taskID != null) {
             $row = $result->fetch_assoc();
             if ($row == null) {
-                echo 404;
-                exit();
+                $connection->close();
+                return 404;
             }
+            $connection->close();
 
             // Get the creator UID and editor UID of the task
             $creatorUID = $row['AddedByUID'];
@@ -258,26 +258,26 @@ class projectManager
                 // If the task is a checklist or radio task, only the creator can edit it (unless the user is an admin)
                 if ($row['Task_type'] == "checklist" || $row['Task_type'] == "radio") {
                     if ($creatorUID == $_SESSION['userId'] || $projectManagerUID == $_SESSION['userId']) {
-                        echo (json_encode($row));
+                        return json_encode($row);
                     } else {
-                        echo 403;
+                        return 403;
                     }
                 } else {
-                    echo (json_encode($row));
+                    return json_encode($row);
                 }
             } else {
-                echo (json_encode($row));
+                return json_encode($row);
             }
 
         } else {
             $rows = $result->fetch_all(MYSQLI_ASSOC);
             if ($rows == null) {
-                echo 404;
-                exit();
+                return 404;
             }
-            echo (json_encode($rows));
+            $connection->close();
+            return json_encode($rows);
         }
-        $connection->close();
+        
     }
 
     static function saveTask()
@@ -809,7 +809,7 @@ if (isset($_POST['mode'])) {
             break;
 
         case 'getProjectTask':
-            echo projectManager::getProjectTask();
+            echo projectManager::getProjectTask($_POST['task_id']);
             break;
 
         case 'getProjectRoot':
@@ -869,5 +869,5 @@ if (isset($_POST['mode'])) {
             echo projectManager::saveNASPath($_POST['path'], $_POST['projectID']);
             break;
     }
-    
+    exit();
 }

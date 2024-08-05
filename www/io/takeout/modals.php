@@ -29,46 +29,6 @@
     </div>
 </div>
 
-<!-- takeoutSettingsModal Modal -->
-<div class="modal fade" id="takeoutSettingsModal" tabindex="-1" role="dialog"
-    aria-labelledby="takeoutSettingsModal_Modal_Label" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="takeoutSettingsModal_Label">Elvitel beállítások</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                </button>
-            </div>
-            <div class="modal-body">
-                <?php
-                if (in_array("admin", $_SESSION["groups"])):
-                    ?>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text">Név:</span>
-                        <input type="text" class="form-control" id="plannedName" placeholder="Projekt/Bérlő neve"
-                            aria-label="Projekt/Bérlő neve" aria-describedby="name">
-                    </div>
-                    <?php
-                endif;
-                ?>
-                <div class="input-group mb-2">
-                    <span class="input-group-text"><span style='color: red;'>*</span>Tervezett időtartam:</span>
-                    <input class="form-control" type="text" id="datepicker" required />
-                </div>
-                <div class="input-group mb-3">
-                    <span class="input-group-text">Megjegyzés:</span>
-                    <textarea class="form-control" aria-label="Comment" id="plannedDesc"
-                        placeholder="Rövid infó az elvitel céljáról..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="submitTakeoutButton" type="button" class="btn btn-success" onclick="submitTakeout()">
-                    Mehet</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 
 <!-- Presets Modal -->

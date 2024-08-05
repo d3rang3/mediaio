@@ -98,7 +98,7 @@ async function loadItems() {
 
         const checkBox = document.createElement("input");
         checkBox.type = "checkbox";
-        const isAvailable = item.Status != -1;
+        const isAvailable = item.Status != 0;
         switch (item.TakeRestrict) {
             case '*':
                 checkBox.disabled = roleLevel < 5 && isAvailable;
