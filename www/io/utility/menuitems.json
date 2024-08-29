@@ -1,16 +1,15 @@
 { "menu": {
     "left" : [
         {"name": "index","icon": "fas fa-home fa-lg", "href": "index.php", "displayName": "Kezdőlap"},
-        {"name": "takeout","icon": "fas fa-upload fa-lg", "href": "takeout.php", "displayName": "Kivétel"},
-        {"name": "retrieve","icon": "fas fa-download fa-lg", "href": "retrieve.php", "displayName": "Visszahozás"},
-        {"name": "projectmanager", "icon": "fas fa-tasks fa-lg", "href": "projectManager/index.php",  "displayName": "Projekt menedzser"},
-        {"name": "adatok","icon": "fas fa-database fa-lg", "href": "adatok.php?Out=4&orderByField=Nev&order=ASC", "displayName": "Adatok"},
-        {"name": "pathfinder","icon": "fas fa-project-diagram fa-lg", "href": "pathfinder.php", "displayName": "PathFinder"},
+        {"name": "takeout","icon": "fas fa-upload fa-lg", "href": "takeout/", "displayName": "Elvitel"},
+        {"name": "retrieve","icon": "fas fa-download fa-lg", "href": "retrieve/", "displayName": "Visszahozás"},
+        {"name": "projectmanager", "icon": "fas fa-tasks fa-lg", "href": "projectManager/index.php",  "displayName": "Projektek"},
+        {"name": "adatok","icon": "fas fa-warehouse fa-lg", "href": "leltar/", "displayName": "Leltár"},
         {"name": "events","icon": "fas fa-calendar-alt fa-lg", "href": "events/", "displayName": "Naptár"},
         {"name": "maintenance", "icon": "fas fa-broom fa-lg", "href": "maintenance/index.php",  "displayName": "Takarítás"},
         {"name": "forms", "icon": "fab fa-wpforms fa-lg", "href": "forms/index.php",  "displayName": "Kérdőívek"},
         {"name": "nas","icon": "fas fa-server fa-lg", "href": "https://nas.arpadmedia.hu","target" : "_blank","external":true, "displayName": "Fájlszerver"},
-        {"name": "profile","icon": "fas fa-user-alt fa-lg", "href": "profile",  "displayName": "Profil"}
+        {"name": "profile","icon": "fas fa-cog fa-lg", "href": "profile",  "displayName": "Beállítások"}
         
     ],
     "info" : [
@@ -20,16 +19,15 @@
       
     ]},
     "indexTable":[
-        {"name": "takeout","icon": "fas fa-upload fa-3x", "href": "takeout.php", "displayName": "Kivétel"},
-        {"name": "retrieve","icon": "fas fa-download fa-3x", "href": "retrieve.php", "displayName": "Visszahozás"},
+        {"name": "takeout","icon": "fas fa-upload fa-3x", "href": "takeout/", "displayName": "Elvitel"},
+        {"name": "retrieve","icon": "fas fa-download fa-3x", "href": "retrieve/", "displayName": "Visszahozás"},
         {"name": "projectmanager", "icon": "fas fa-tasks fa-3x", "href": "./projectManager/", "displayName": "Projektek"},
-        {"name": "adatok","icon": "fas fa-database fa-3x", "href": "./adatok.php?Out=4&orderByField=Nev&order=ASC", "displayName": "Adatok"},
-        {"name": "pathfinder","icon": "fas fa-project-diagram fa-3x", "href": "./pathfinder.php", "displayName": "PathFinder"},
+        {"name": "adatok","icon": "fas fa-warehouse fa-3x", "href": "leltar/", "displayName": "Leltár"},
         {"name": "events","icon": "fas fa-calendar-alt fa-3x", "href": "events/", "displayName": "Naptár"},
         {"name": "broom", "icon": "fas fa-broom fa-3x", "href": "./maintenance/", "displayName": "Takarítás"},
         {"name": "forms", "icon": "fab fa-wpforms fa-3x", "href": "./forms/", "displayName": "Kérdőívek"},
         {"name": "Server","icon": "fas fa-server fa-3x","href": "https://nas.arpadmedia.hu","displayName": "Fájlszerver"},
-        {"name": "profile","icon": "fas fa-user-alt fa-3x", "href": "profile/index.php", "displayName": "Profil"}
+        {"name": "profile","icon": "fas fa-cog fa-3x", "href": "profile/index.php", "displayName": "Beállítások"}
         
     ]
 }

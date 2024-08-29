@@ -1,3 +1,30 @@
+
+async function checkForUpdates(lastUpdate) {
+
+    // Make lastUpdate to a yyyy:mm:dd hh:mm:ss format from JS Date object
+    lastUpdate = new Date(lastUpdate);
+    lastUpdate = lastUpdate.toISOString().slice(0, 19).replace("T", " ");
+
+
+    const response = await $.ajax({
+        type: "POST",
+        url: "../../projectManager.php",
+        data: {
+            mode: "checkForUpdates",
+            lastUpdate: lastUpdate
+        }
+    });
+
+    if (response == 500) {
+        serverErrorToast();
+    }
+    //console.log(response);
+
+    return response;
+}
+
+
+
 async function fetchProjects(archived = 0) {
     //console.log("Fetching projects");
 
@@ -7,7 +34,7 @@ async function fetchProjects(archived = 0) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "listProjects", archived: archived }
             });
 
@@ -15,6 +42,8 @@ async function fetchProjects(archived = 0) {
             if (response == 500) {
                 serverErrorToast();
             }
+
+            //console.log(response);
 
             var projects = JSON.parse(response);
 
@@ -37,7 +66,7 @@ async function fetchProject(proj_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getProject", id: proj_id }
             });
 
@@ -65,7 +94,7 @@ async function createNewProject() {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "createNewProject" }
             });
 
@@ -76,6 +105,33 @@ async function createNewProject() {
             //console.log(response);
 
             location.reload();
+
+            resolve(response);
+        } catch (error) {
+            console.error("Error:", error);
+            reject(error);
+        }
+    });
+}
+
+async function fetchProjectRoot(proj_id) {
+    //console.log("Fetching project root");
+
+    return new Promise(async (resolve, reject) => {
+        try {
+            let response;
+
+            response = await $.ajax({
+                type: "POST",
+                url: "../../projectManager.php",
+                data: { mode: "getProjectRoot", id: proj_id }
+            });
+
+            if (response == 500) {
+                serverErrorToast();
+            }
+
+            //console.log(response);
 
             resolve(response);
         } catch (error) {
@@ -97,13 +153,13 @@ async function fetchTask(proj_id = null, task_id = null, fillOut = false) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getProjectTask", proj_id: proj_id, task_id: task_id, fillOut: fillOut }
             });
 
-           /*  if (response != 200) {
-                serverErrorToast();
-            } */
+            /*  if (response != 200) {
+                 serverErrorToast();
+             } */
 
             //console.log(response);
 
@@ -127,7 +183,7 @@ async function fetchUIs(task_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getUIs", id: task_id }
             });
 
@@ -154,7 +210,7 @@ async function fetchUI(task_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getUI", ID: task_id }
             });
 
@@ -172,17 +228,20 @@ async function fetchUI(task_id) {
     });
 }
 
-async function userTaskData(task_id, proj_id = null) {
+async function userTaskData(task_id, type = "card", proj_id = null) {
     //console.info("Loading user task data...");
 
     return new Promise(async (resolve, reject) => {
         try {
-            let response;
-
-            response = await $.ajax({
+            let response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
-                data: { mode: "getUserTaskData", task_id: task_id, proj_id: proj_id }
+                url: "../../projectManager.php",
+                data: {
+                    mode: "getUserTaskData",
+                    task_id: task_id,
+                    proj_id: proj_id,
+                    type: type
+                }
             });
 
             if (response == 500) {
@@ -211,7 +270,6 @@ async function saveTaskToDB(task, taskMembersArray, image, task_id = null) {
 
     return new Promise(async (resolve, reject) => {
         try {
-            let response;
 
             let formData = new FormData();
             formData.append("mode", "saveTask");
@@ -224,17 +282,13 @@ async function saveTaskToDB(task, taskMembersArray, image, task_id = null) {
                 formData.append("ID", task_id);
             }
 
-            response = await $.ajax({
+            const response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: formData,
                 processData: false,
                 contentType: false
             });
-
-            if (response == 500) {
-                window.location.href = "index.php?serverError";
-            }
 
             console.log(response);
 
@@ -258,7 +312,7 @@ async function submitTaskToDB(task_id, taskData) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "submitTask", ID: task_id, task: taskJson }
             });
 
@@ -285,7 +339,7 @@ async function deleteTaskFromDB(task_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "deleteTask", ID: task_id }
             });
 
@@ -326,7 +380,7 @@ async function saveProjectSettingsToDB(proj_id, projectName, projectDescription,
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "saveProjectSettings", id: proj_id, settings: settingsJson }
             });
 
@@ -356,7 +410,7 @@ async function saveProjectMembersToDB(proj_id, members) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "saveProjectMembers", id: proj_id, Members: membersJson }
             });
 
@@ -387,7 +441,7 @@ async function deleteProjectFromDB(proj_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "deleteProject", id: proj_id }
             });
 
@@ -419,7 +473,7 @@ async function getUsers() {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getUsers" }
             });
 
@@ -451,7 +505,7 @@ async function fetchMemberNames(memberIDs) {
 
                 response = await $.ajax({
                     type: "POST",
-                    url: "../projectManager.php",
+                    url: "../../projectManager.php",
                     data: { mode: "getUsers", ID: memberID }
                 });
 
@@ -484,7 +538,7 @@ async function fetchProjectMembers(proj_id) {
 
             response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getProjectMembers", id: proj_id }
             });
 
@@ -509,17 +563,12 @@ async function fetchTaskMembers(task_id, proj_id) {
 
     return new Promise(async (resolve, reject) => {
         try {
-            let response;
 
-            response = await $.ajax({
+            let response = await $.ajax({
                 type: "POST",
-                url: "../projectManager.php",
+                url: "../../projectManager.php",
                 data: { mode: "getTaskMembers", task_id: task_id, proj_id: proj_id }
             });
-
-            if (response == 500) {
-                window.location.href = "index.php?serverError";
-            }
 
             //console.log(response);
 

@@ -1,0 +1,65 @@
+#settings {
+    max-width: 600px;
+    overflow: auto;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+
+.statsTable {
+    max-height: 87dvh;
+    overflow: auto;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+
+.waitForConfirm {
+
+    * {
+        animation: textColor 1s infinite alternate;
+    }
+}
+
+
+/* Animations */
+
+@keyframes textColor {
+    0% {
+        color: #000;
+    }
+
+    100% {
+        color: #f00;
+    }
+}

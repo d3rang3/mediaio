@@ -17,6 +17,8 @@
   <title>Arpad Media IO</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <script src="../../utility/toastManager.js" crossorigin="anonymous" defer></script>
+
   <script>
     $(window).on('load', function () {
       console.log("Finishing UI");

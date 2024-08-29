@@ -1,3 +1,25 @@
+async function generateNewProjectButton(mobile) {
+
+    const projectHolder = mobile ? document.getElementsByClassName("container")[0] : document.getElementById("projectHolder");
+
+    // Create a div for the button
+    const div = document.createElement("div");
+    div.classList.add("addProjectButton")
+
+    // Create add button
+
+    const addProjectButton = document.createElement("button");
+    addProjectButton.classList.add("btn", "btn-success", "addButton");
+    addProjectButton.innerHTML = '<i class="fas fa-plus"></i>';
+    addProjectButton.onclick = function () {
+        createNewProject();
+    }
+    div.appendChild(addProjectButton);
+
+    projectHolder.appendChild(div);
+
+}
+
 
 function changeProjectSettingsButton(projectID) {
     let settingsButton = document.createElement("button");
@@ -61,7 +83,7 @@ async function removeMemberFromProject(projectID, memberID) {
 
     return await $.ajax({
         type: "POST",
-        url: "../projectManager.php",
+        url: "../../projectManager.php",
         data: { mode: "removeMemberFromProject", projectId: projectID, userId: memberID },
     });
 }
@@ -146,7 +168,7 @@ async function changeManager(projectID, memberID) {
 
         response = await $.ajax({
             type: "POST",
-            url: "../projectManager.php",
+            url: "../../projectManager.php",
             data: { mode: "changeManager", projectId: projectID, newManagerId: memberID },
         });
 
@@ -210,8 +232,17 @@ async function openSettings(proj_id) {
     document.getElementById("projectName").value = projectName;
 
     // Set the project description
-    var projectDescription = projectSettings.Description;
-    document.getElementById("projectDescription").value = projectDescription;
+    const holderDiv = document.getElementById("projectDescriptionDiv");
+    holderDiv.innerHTML = "";
+
+    // Add description
+    const span = document.createElement("span");
+    span.innerHTML = "Leírás: ";
+    span.classList.add("input-group-text");
+    holderDiv.appendChild(span);
+
+    textEditor(holderDiv, projectSettings.Description, '200px', 'projectDescription');
+
 
 
     // Load deadline
@@ -239,14 +270,26 @@ async function openSettings(proj_id) {
         saveProjectSettings(proj_id);
     }
 
-    // Create delete button
-    var deleteText = document.getElementById("deleteText");
-    deleteText.placeholder = projectName;
+    // NAS root folder settings
+    var projectFolder = projectSettings.NAS_path ? projectSettings.NAS_path : "/Munka";
+    document.getElementById("pathToProject").value = projectFolder;
 
-    var deleteButton = document.getElementById("deleteButton");
-    deleteButton.onclick = function () {
-        deleteProject(proj_id);
+    //Create browse button
+    var browseButton = document.getElementById("browseRootFolder");
+    browseButton.onclick = function () {
+        $('#filebrowserModal').modal('show');
+        $('#projectSettingsModal').modal('hide');
+        browseNASFolder(proj_id, null, "projectRoot", document.getElementById("pathToProject").value);
     }
+
+    // Create delete button
+    //var deleteText = document.getElementById("deleteText");
+    //deleteText.placeholder = projectName;
+
+    //var deleteButton = document.getElementById("deleteButton");
+    //deleteButton.onclick = function () {
+    //    deleteProject(proj_id);
+    //}
 
     // Create archive button
     var archiveButton = document.getElementById("archiveButton");
@@ -303,32 +346,93 @@ async function saveProjectSettings(proj_id) {
 // Delete project
 
 async function deleteProject(proj_id) {
+    $('#taskArchiveModal').modal('hide');
+    $('#areyousureModal').modal('show');
 
-    // Get the project name
-    var projectName = document.getElementById("deleteText").placeholder;
+    document.getElementById('sureButton').innerHTML = "Törlés";
 
-    var typedName = document.getElementById("deleteText").value;
+    // Create a new Promise that resolves when the button is clicked
+    let buttonClicked = new Promise((resolve, reject) => {
+        document.getElementById('sureButton').addEventListener('click', resolve);
+        document.getElementById('cancelButton').addEventListener('click', reject);
+    });
 
-    if (projectName == typedName) {
-
-        // Delete the project
+    await buttonClicked.then(async () => {
         await deleteProjectFromDB(proj_id);
-
-        // Reload the page
-        refreshProjects();
-
         successToast("Projekt sikeresen törölve!");
+    }).catch(() => {
+        // Do nothing
+        console.log("Archiving cancelled");
+    });
+    showArchivedProjects();
+}
 
-        // Close the modal
-        $('#projectSettingsModal').modal('hide');
 
-    } else {
-        console.error("Error: Project name does not match");
-        return;
+// Archived projects
+
+async function showArchivedProjects() {
+    try {
+        let archivedProjects = await fetchProjects(1);
+        if (archivedProjects.length == 0) {
+            alert("Nincs archivált projekt.");
+            return;
+        }
+
+        // Create a new project holder card
+        let projectHolder = document.getElementById("archivedTasks");
+        projectHolder.innerHTML = "";
+
+        for (let i = 0; i < archivedProjects.length; i++) {
+            projectHolder.appendChild(await generateArchivedProjectBody(archivedProjects[i]));
+        }
+
+        $('#taskArchiveModal').modal('show');
+    } catch (error) {
+        console.error("Error showing archived projects:", error);
     }
 
 }
 
+async function generateArchivedProjectBody(project) {
+    console.log(`Generating archived project body: ${project.Name}`);
+
+    // Create a new project card
+    let projectCard = document.createElement("div");
+    projectCard.classList.add("card", "archivedProjectCard");
+    projectCard.id = project.ID;
+
+    // Create a new project body
+    let projectBody = document.createElement("div");
+    projectBody.classList.add("card-body", "d-flex", "justify-content-between", "align-items-center");
+    projectBody.innerHTML = project.Name;
+    projectCard.appendChild(projectBody);
+
+    // Create button holder div
+    let buttonHolder = document.createElement("div");
+    projectBody.appendChild(buttonHolder);
+
+    // Create restore button
+    let restoreButton = document.createElement("button");
+    restoreButton.classList.add("btn", "btn-success");
+    restoreButton.innerHTML = `<i class="fas fa-undo"></i>`;
+    restoreButton.style.marginRight = "10px";
+    restoreButton.onclick = function () {
+        restoreProject(project.ID);
+    }
+    buttonHolder.appendChild(restoreButton);
+
+    // Create delete button
+    let deleteButton = document.createElement("button");
+    deleteButton.classList.add("btn", "btn-danger");
+    deleteButton.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+    deleteButton.onclick = function () {
+        deleteProject(project.ID);
+    }
+    buttonHolder.appendChild(deleteButton);
+
+
+    return projectCard;
+}
 
 async function archiveProject(projectID) {
     console.log("Archiving project: " + projectID);
@@ -347,20 +451,19 @@ async function archiveProject(projectID) {
 
     buttonClicked.then(async () => {
         // Archive the project
-        $.ajax({
+        const response = await $.ajax({
             type: "POST",
             url: "../../projectManager.php",
             data: { mode: "archiveProject", projectId: projectID },
-            success: function (response) {
-                console.log(response);
-                if (response == 500) {
-                    window.location.href = "index.php?serverError";
-                }
-                if (response == 200) {
-                    location.reload();
-                }
-            }
         });
+
+        if (response == 200) {
+            await refreshProjects();
+            successToast("Projekt beállítások sikeresen mentve!");
+            $('#areyousureModal').modal('hide');
+        } else {
+            serverErrorToast();
+        }
     }).catch(() => {
         // Do nothing
         console.log("Archiving cancelled");
@@ -368,4 +471,71 @@ async function archiveProject(projectID) {
     });
 
 
+}
+
+async function restoreProject(projectID) {
+    console.log("Restoring project: " + projectID);
+    $('#taskArchiveModal').modal('hide');
+    $('#areyousureModal').modal('show');
+
+    document.getElementById('sureButton').innerHTML = "Visszaállítás";
+    document.getElementById('sureButton').classList.remove("btn-danger");
+    document.getElementById('sureButton').classList.add("btn-success");
+
+
+
+    // Create a new Promise that resolves when the button is clicked
+    let buttonClicked = new Promise((resolve, reject) => {
+        document.getElementById('sureButton').addEventListener('click', resolve);
+        document.getElementById('cancelButton').addEventListener('click', reject);
+    });
+
+    buttonClicked.then(async () => {
+        // Restore the project
+        const response = await $.ajax({
+            type: "POST",
+            url: "../../projectManager.php",
+            data: { mode: "restoreProject", projectID: projectID },
+        });
+
+        if (response == 200) {
+            await refreshProjects();
+            successToast("Projekt beállítások sikeresen mentve!");
+            $('#areyousureModal').modal('hide');
+            showArchivedProjects();
+        } else {
+            serverErrorToast();
+        }
+    }).catch(() => {
+        // Do nothing
+        console.log("Restoring cancelled");
+        $('#areyousureModal').modal('hide');
+        showArchivedProjects();
+        return;
+    });
+}
+
+
+// FILE MANAGEMENT
+
+async function saveNASPath(projectID, path) {
+    console.log("Saving NAS path: " + path);
+
+    let response = await $.ajax({
+        type: "POST",
+        url: "../../projectManager.php",
+        data: { mode: "saveNASPath", projectID: projectID, path: path },
+    });
+
+    if (response == 200) {
+        console.log("Path saved successfully");
+        successToast("Útvonal sikeresen mentve!");
+
+        document.getElementById("pathToProject").value = path;
+        $('#filebrowserModal').modal('hide');
+        $('#projectSettingsModal').modal('show');
+    } else {
+        console.error("Error: " + response);
+        serverErrorToast();
+    }
 }

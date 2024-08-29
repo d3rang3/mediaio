@@ -3,7 +3,7 @@
         "league/oauth2-client": "^2.6",
         "phpmailer/phpmailer": "^6.8",
         "league/oauth2-google": "^4.0",
-        "google/apiclient": "^2.12.1",
+        "google/apiclient": "^2.15.0",
         "sendinblue/api-v3-sdk": "^7.4",
         "mk-j/php_xlsxwriter": "^0.39.0",
         "getbrevo/brevo-php": "1.x.x"

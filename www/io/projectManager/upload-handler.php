@@ -19,7 +19,7 @@ class projectPictureManager
   {
     // Check if folder exists
     if (self::checkIfFolderExists() == 500) {
-      return 500;
+      //return 500;
     }
 
     $imageFileType = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));

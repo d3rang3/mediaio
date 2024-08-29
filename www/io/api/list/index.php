@@ -3,6 +3,7 @@ require_once __DIR__.'/../../ItemManager.php';
 require_once __DIR__.'/../../Core.php';
 use Mediaio\ItemDataManager;
 use Mediaio\Core;
+use Mediaio\retrieveManager;
 //Usage: TODO
 //Returns 200 with a token if the credentials are correct
 $request_method=$_SERVER["REQUEST_METHOD"];
@@ -35,8 +36,8 @@ switch($request_method)
         
         //list user items
         if(isset($_GET["mode"]) & $_GET["mode"]=="user"){
-          $itemManager=new itemDataManager();
-          $itemsJSON=json_decode($itemManager->listUserItems($loginResponse['userData']));
+          $itemManager=new retrieveManager();
+          $itemsJSON=json_decode($itemManager->listUserItems());
           header("HTTP/1.0 200 OK");
           header('Content-Type: application/json');
           echo json_encode(array('items'=>$itemsJSON, 'text' => 'OK.'));
@@ -46,7 +47,7 @@ switch($request_method)
         else{
         //list  every item
         $itemManager=new itemDataManager();
-        $itemsJSON=json_decode($itemManager->listItems($_GET,true));
+        $itemsJSON=json_decode($itemManager->getItems());
 		    header("HTTP/1.0 200 OK");
 		    header('Content-Type: application/json');
 		    echo json_encode(array('items'=>$itemsJSON, 'text' => 'OK.'));

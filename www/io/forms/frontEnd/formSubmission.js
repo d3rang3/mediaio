@@ -2,118 +2,77 @@
 
 function saveUserInputToCookie() {
     console.log("Saving user input to cookie");
-    var form = document.getElementById("form-body"); //Get form container
+    const form = document.getElementById("form-body"); //Get form container
 
-    var elements = form.getElementsByClassName("question"); //Get all form elements
+    const elements = Array.from(form.getElementsByClassName("question")); //Get all form elements
 
-    var answers = [];
-    for (var i = 0; i < elements.length; i++) {
-        //Loop through all form elements
-        var element = elements[i];
+    const answers = elements.map(element => {
+        const [elementType] = element.id.split("-");
+        const inputs = Array.from(element.getElementsByClassName("userInput"));
 
-        var elementType = element.id.split("-")[0];
-        var inputs = element.getElementsByClassName("userInput");
-
-        var value = [];
+        let value;
         //Get value of form element
-        if (elementType == "radio" || elementType == "checkbox") {
-            for (var j = 0; j < inputs.length; j++) {
-                if (inputs[j].checked) {
-                    value.push(1);
-                } else {
-                    value.push(0);
-                }
-            }
-        }
-        else if (elementType == "scaleGrid") {
-            var scaleGrid = element.getElementsByClassName("grid-holder")[0];
-            var rows = scaleGrid.getElementsByClassName("grid-row");
-            var rowAnswers = [];
-            for (var j = 0; j < rows.length; j++) {
-                var rowLabel = rows[j].getElementsByClassName("row-label")[0].innerText;
-
-                var inputs = rows[j].getElementsByClassName("userInput");
-                var rowInputs = [];
-                for (var k = 0; k < inputs.length; k++) {
-                    rowInputs.push(inputs[k].checked ? 1 : 0);
-                }
-
-                var rowAnswer = {
-                    label: rowLabel,
-                    answers: rowInputs
-                }
-                rowAnswers.push(rowAnswer);
-            }
-            value = rowAnswers;
-        }
-        else {
+        if (elementType === "radio" || elementType === "checkbox") {
+            value = inputs.map((input, i) => input.checked ? `${input.nextSibling.textContent}:1` : `${input.nextSibling.textContent}:0`);
+        } else if (elementType === "scaleGrid") {
+            const scaleGrid = element.getElementsByClassName("grid-holder")[0];
+            const rows = Array.from(scaleGrid.getElementsByClassName("grid-row"));
+            value = rows.map(row => {
+                const rowLabel = row.getElementsByClassName("row-label")[0].innerText;
+                const rowInputs = Array.from(row.getElementsByClassName("userInput")).map(input => input.checked ? 1 : 0);
+                return { label: rowLabel, answers: rowInputs };
+            });
+        } else {
             value = inputs[0].value;
         }
 
-        value = JSON.stringify(value);
-
-        var answer = {
+        return {
             id: element.id,
-            value: value
-        }
-        answers.push(answer);
-    }
-
-    answers = JSON.stringify(answers);
+            value: JSON.stringify(value)
+        };
+    });
 
     //Set cookie expire date to 1 day
-    var d = new Date();
+    const d = new Date();
     d.setTime(d.getTime() + (1 * 24 * 60 * 60 * 1000));
-    var expires = "expires=" + d.toUTCString();
+    const expires = `expires=${d.toUTCString()}`;
 
-    document.cookie = "userInput=" + answers + ";" + expires + ";path=/; ";
+    document.cookie = `userInput=${JSON.stringify(answers)};${expires};path=/; `;
 }
 
 function reloadUserInput() {
-    var userInput = getUserInputFromCookie();
-    if (userInput != "") {
+    let userInput = getUserInputFromCookie();
+    if (userInput !== "") {
         userInput = JSON.parse(userInput);
-        var form = document.getElementById("form-body"); //Get form container
+        const form = document.getElementById("form-body"); //Get form container
 
-        var elements = form.getElementsByClassName("question"); //Get all form elements
+        const elements = Array.from(form.getElementsByClassName("question")); //Get all form elements
 
-        for (var i = 0; i < elements.length; i++) {
-            //Loop through all form elements
-            var element = elements[i];
+        elements.forEach((element, i) => {
+            const [elementType] = element.id.split("-");
+            const inputs = Array.from(element.getElementsByClassName("userInput"));
 
-            var elementType = element.id.split("-")[0];
-            var inputs = element.getElementsByClassName("userInput");
-
-            var value = userInput[i].value;
+            const value = JSON.parse(userInput[i].value);
             //Get value of form element
-            if (elementType == "radio" || elementType == "checkbox") {
-                /* for (var j = 0; j < inputs.length; j++) {
-                    if (value[j] == 1) {
-                        inputs[j].checked = true;
-                    } else {
-                        inputs[j].checked = false;                          //TODO: Fix this!!!!!!!!!!!!!!!!!
-                    }
-                } */
+            if (elementType === "radio" || elementType === "checkbox") {
+                inputs.forEach((input, j) => {
+                    const [label, checked] = value[j].split(":");
+                    input.checked = checked === "1";
+                });
+            } else if (elementType === "scaleGrid") {
+                const scaleGrid = element.getElementsByClassName("grid-holder")[0];
+                const rows = Array.from(scaleGrid.getElementsByClassName("grid-row"));
+                rows.forEach((row, j) => {
+                    const rowInputs = Array.from(row.getElementsByClassName("userInput"));
+                    const answers = value[j] ? value[j].answers : [];
+                    rowInputs.forEach((input, k) => {
+                        input.checked = answers[k] === 1;
+                    });
+                });
+            } else {
+                inputs[0].value = value;
             }
-            else if (elementType == "scaleGrid") {
-                /* var scaleGrid = element.getElementsByClassName("grid-holder")[0];
-                var rows = scaleGrid.getElementsByClassName("grid-row");
-                for (var j = 0; j < rows.length; j++) {
-                    var inputs = rows[j].getElementsByClassName("userInput");
-                    var rowInputs = value[j].answers;
-                    for (var k = 0; k < inputs.length; k++) {
-                        if (rowInputs[k] == 1) {
-                            inputs[k].checked = true;
-                        } else {
-                            inputs[k].checked = false;
-                        }
-                    }
-                } */
-            }
-            else {
-                inputs[0].value = value.replace(/"/g, '');
-            }
-        }
+        });
     }
 }
 
@@ -169,11 +128,8 @@ async function submitAnswer(formId, formHash, isAnonim) {
         //Get value of form element
         if (elementType == "radio" || elementType == "checkbox") {
             for (var j = 0; j < inputs.length; j++) {
-                if (inputs[j].checked) {
-                    value.push(1);
-                } else {
-                    value.push(0);
-                }
+                let label = inputs[j].parentElement.querySelector("label").innerText;
+                value.push(inputs[j].checked ? `${label}:1` : `${label}:0`);
             }
         }
         else if (elementType == "scaleGrid") {

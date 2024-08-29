@@ -4,7 +4,7 @@ session_start();
 include ("header.php");
 include ("../translation.php");
 
-if (!isset ($_SESSION["userId"])) {
+if (!isset($_SESSION["userId"])) {
    echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
    exit();
 }
@@ -55,6 +55,13 @@ if (!in_array("admin", $_SESSION["groups"])) {
    </div>
 </nav>
 
+<div class="centerTopAccessories">
+   <button class="btn" onclick="window.location.href = 'formeditor.php?formId=' + <?php echo $_GET['formId'] ?>"><i
+         class='fas fa-edit fa-lg' style="color: fff"></i></button>
+   <button class="btn" onclick="window.location.href = 'viewform.php?formId=' + <?php echo $_GET['formId'] ?>"
+      style="color: fff"><i class="fas fa-eye"></i></button>
+</div>
+
 <body>
    <div class="form" id="doboz">
       <h2 class="rainbow" id="form_name"></h2>
@@ -67,9 +74,6 @@ if (!in_array("admin", $_SESSION["groups"])) {
             </ul>
          </div>
          <button class="btn btn-success" onclick="showTable()"><i class="fas fa-table fa-lg"></i></button>
-         <button class="btn" onclick="showFormEdit(<?php echo $_GET['formId'] ?>)"><i
-               class='fas fa-highlighter fa-lg'></i></button>
-         <button class="btn" onclick="viewForm(<?php echo $_GET['formId'] ?>)"><i class="fas fa-eye"></i></button>
 
       </div>
       <div class="justify-content-center">
@@ -101,12 +105,12 @@ if (!in_array("admin", $_SESSION["groups"])) {
 
    $(document).ready(function () {
       //Load form from server
-      let formId = <?php if (isset ($_GET['formId'])) {
+      let formId = <?php if (isset($_GET['formId'])) {
          echo $_GET['formId'];
       } else {
          echo '-1';
       } ?>;
-      let formHash = <?php if (isset ($_GET['form'])) {
+      let formHash = <?php if (isset($_GET['form'])) {
          echo '"' . $_GET['form'] . '"';
       } else {
          echo 'null';
@@ -137,16 +141,6 @@ if (!in_array("admin", $_SESSION["groups"])) {
             buttons[1].classList.add("btn-success");
             break;
       }
-   }
-
-   //Function to view form
-   function viewForm(formId) {
-      window.location.href = "viewform.php?formId=" + formId;
-   }
-
-
-   function showFormEdit(id) {
-      window.location.href = "formeditor.php?formId=" + <?php echo $_GET['formId'] ?>;
    }
 
 </script>

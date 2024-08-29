@@ -16,7 +16,7 @@ date_default_timezone_set('Europe/Budapest');
 class MailService
 {
 
-    static function sendContactMail($name,$to,$subject,$content)
+    static function sendContactMail($to,$subject,$content)
     {
 
         $config = json_decode(file_get_contents(__DIR__ . '/server/mailCredentials.json'), true);

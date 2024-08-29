@@ -8,10 +8,12 @@
 namespace Mediaio;
 
 require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/Core.php';
 
-use Mediaio\Core;
 use Mediaio\Database;
+
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
 
 
 class takeOutManager
@@ -20,73 +22,66 @@ class takeOutManager
   User takeout process. Stages the takeout as it still needs to be approved on userCheck panel.
   sets the item status to 2 (needs approvement.)
   */
-  static function stageTakeout()
+  static function stageTakeout($takeoutItems)
   {
     //Accesses post and Session Data.
+    // Set time zone to Budapest
+    date_default_timezone_set('Europe/Budapest');
+    $currDate = date("Y/m/d H:i:s");
+    $connection = Database::runQuery_mysqli();
 
+    $UID = $_SESSION['userId'];
 
-  }
+    // Is user an admin?
+    $acknowledged = in_array("admin", $_SESSION['groups']) ? 1 : 0; // Stageing happens here
+    // Set the ackBy field to the user's name if the user is an admin
+    $ackBy = $acknowledged ? $_SESSION['UserUserName'] : NULL;
 
-  //Usercheck approved takeout process. Acknowledges the takeout process and sets the item status to 1 (taken out)
-  static function approveTakeout($value)
-  {
-    if ($value == 'true') {/*  If approved (value=true)  */
-      $userName = $_SESSION['UserUserName'];
-      if (empty($userName)) {
-        return 400; // Session data is empty (e.g User is not loggged in.)
-      } else {
-        $data = json_decode(stripslashes($_POST['data']), true);
-        $dataArray = array();
-        foreach ($data as $d) {
-          array_push($dataArray, $d["uid"]);
-        }
-        //For Use in the SQL query.
-        $dataString = "'" . implode("','", $dataArray) . "'";
-        //Restore Items allowing others to take it out.
-        $sql = "START TRANSACTION; UPDATE leltar SET leltar.Status=0 AND RentBy='" . $_POST['user'] . "' WHERE leltar.UID IN (" . $dataString . ");";
-        //Acknowledge events in log.
-        $sql .= "UPDATE takelog SET Acknowledged=1, ACKBY='" . $userName . "' WHERE User='" . $_POST['user'] . "' AND Date='" . $_POST['date'] . "' AND EVENT='OUT' AND JSON_CONTAINS(Items, '" . $_POST['data'] . "'); COMMIT;";
+    // Change every item as taken in the database
+    $takeoutItems = json_decode($takeoutItems, true);
 
-        $connection = Database::runQuery_mysqli();
-        if (!$connection->multi_query($sql)) {
-          printf("Error message: %s\n", $connection->error);
-        } else {
-          //All good, return OK message
-          //echo $sql;
-          echo 200;
-          return;
-        }
+    try {
+      // Start transaction
+      $connection->begin_transaction();
+      // Check if planned takeout start time is in the future
+      $status = in_array("admin", $_SESSION['groups']) ? 0 : 2;
+
+      $sql = "UPDATE leltar SET Status = $status, RentBy = '" . $_SESSION['userId'] . "' WHERE `UID` = ?";
+
+      // Update leltar
+      $stmt = $connection->prepare($sql);
+      foreach ($takeoutItems as $item) {
+        $stmt->bind_param("s", $item['uid']);
+        $stmt->execute();
       }
-    } else {
-      /*  If not approved (value=false) - Decline takeout  */
-      $userName = $_SESSION['UserUserName'];
-      if (empty($userName)) {
-        return 400; // Session data is empty (e.g User is not loggged in.)
-      } else {
-        $data = json_decode(stripslashes($_POST['data']), true);
-        $dataArray = array();
-        foreach ($data as $d) {
-          array_push($dataArray, $d["uid"]);
-        }
-        // var_dump($dataArray);
-        //Preparing items for dataset in sql command.
-        $dataString = "'" . implode("','", $dataArray) . "'";
 
-        //Restore Items allowing others to take it out.
-        $sql = "START TRANSACTION; UPDATE leltar SET Status=1, RentBy='NULL' WHERE UID IN (" . $dataString . ");";
-        //Remove takeOut event form log.
-        $sql .= "DELETE FROM takelog WHERE Acknowledged=0 AND User='" . $_POST['user'] . "'AND Event='OUT' AND JSON_CONTAINS(Items, '" . $_POST['data'] . "') AND Date='" . $_POST['date'] . "'; COMMIT;";
-
-        $connection = Database::runQuery_mysqli();
-        if (!$connection->multi_query($sql)) {
-          printf("Error message: %s\n", $connection->error);
-        } else {
-          //All good, return OK message
-          echo 200;
-          return;
-        }
-      }
+      // Commit transaction
+      $connection->commit();
+    } catch (\Exception $e) {
+      // Rollback transaction if there is an error
+      $connection->rollback();
+      printf("Error message: %s\n", $e->getMessage());
+      $connection->close();
+      return 500;
     }
+
+    try {
+      $takeoutItems = json_encode($takeoutItems);
+      $connection->begin_transaction();
+
+      // TAKELOG
+      $sql = "INSERT INTO takelog (`ID`, `Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
+            VALUES (NULL, '$currDate', '$UID', '$takeoutItems', 'OUT', $acknowledged, '$ackBy')";
+      $connection->query($sql);
+
+      $connection->commit();
+    } catch (\Exception $e) {
+      echo "Error: " . $e->getMessage();
+      $connection->close();
+      return 500;
+    }
+    $connection->close();
+    return 200;
   }
 
   /*Take out items from the database. Sets the item status to 0 (taken out)
@@ -97,42 +92,42 @@ class takeOutManager
   Currenty limited behaviour (Only empty takerestrict items work!)*/
 
   //TODO: update this behaviour.
-  static function REST_takeout($items, $userData)
-  {
-    $successfulTakeouts = 0;
-    $successfulItems = array();
-    foreach ($items as $item) {
-      # Check if it is taken out or marked as restri
-      $sql = ("SELECT Status, TakeRestrict, RentBy FROM leltar WHERE UID=?");
-      //Get a new database connection
-      $connection = Database::runQuery_mysqli();
-      $stmt = $connection->prepare($sql);
-      $stmt->bind_param("s", $item);
-      $stmt->execute();
-      $result = $stmt->get_result();
-      $row = $result->fetch_assoc();
-
-      if ($row['Status'] == 0 && $row['RentBy'] != NULL && $row['TakeRestrict'] != "") { //TODO: Update this line!
-        //Item is taken out, or currenty limited by api (Only empty takerestrics items work!)
-        continue;
-      } else {
-        $sql = "UPDATE leltar SET Status = 0, RentBy = ? WHERE UID = ?";
-        $stmt = $connection->prepare($sql);
-        $stmt->bind_param("ss", $userData['username'], $item);
-        $stmt->execute();
-
-        // Check affected rows on the prepared statement
-        if ($stmt->affected_rows == 1) {
-          // All good, return OK message
-          $successfulItems[] = $item;
-          $successfulTakeouts++;
-        }
-
-        $stmt->close();
-      }
-    }
-    return array('successfulTakeouts' => $successfulTakeouts, 'successfulItems' => $successfulItems);
-  }
+  //static function REST_takeout($items, $userData)
+  //{
+  //  $successfulTakeouts = 0;
+  //  $successfulItems = array();
+  //  foreach ($items as $item) {
+  //    # Check if it is taken out or marked as restri
+  //    $sql = ("SELECT Status, TakeRestrict, RentBy FROM leltar WHERE UID=?");
+  //    //Get a new database connection
+  //    $connection = Database::runQuery_mysqli();
+  //    $stmt = $connection->prepare($sql);
+  //    $stmt->bind_param("s", $item);
+  //    $stmt->execute();
+  //    $result = $stmt->get_result();
+  //    $row = $result->fetch_assoc();
+//
+  //    if ($row['Status'] == 0 && $row['RentBy'] != NULL && $row['TakeRestrict'] != "") { //TODO: Update this line!
+  //      //Item is taken out, or currenty limited by api (Only empty takerestrics items work!)
+  //      continue;
+  //    } else {
+  //      $sql = "UPDATE leltar SET Status = 0, RentBy = ? WHERE UID = ?";
+  //      $stmt = $connection->prepare($sql);
+  //      $stmt->bind_param("ss", $userData['username'], $item);
+  //      $stmt->execute();
+//
+  //      // Check affected rows on the prepared statement
+  //      if ($stmt->affected_rows == 1) {
+  //        // All good, return OK message
+  //        $successfulItems[] = $item;
+  //        $successfulTakeouts++;
+  //      }
+//
+  //      $stmt->close();
+  //    }
+  //  }
+  //  return array('successfulTakeouts' => $successfulTakeouts, 'successfulItems' => $successfulItems);
+  //}
 
   /*Retrieve items to the database. Sets the item status to 1.
 
@@ -141,255 +136,344 @@ class takeOutManager
   Bypasses the userCheck process for now.*/
 
   //TODO: update this behaviour.
-  static function REST_retrieve($items, $userData)
-  {
-    $successfulRetrieves = 0;
-    $successfulItems = array();
-    foreach ($items as $item) {
-      # Check if it is taken out or marked as restri
-      $sql = ("SELECT Status, TakeRestrict, RentBy FROM leltar WHERE UID=?");
-      //Get a new database connection
-      $connection = Database::runQuery_mysqli();
-      $stmt = $connection->prepare($sql);
-      $stmt->bind_param("s", $item);
-      $stmt->execute();
-      $result = $stmt->get_result();
-      $row = $result->fetch_assoc();
+  //static function REST_retrieve($items, $userData)
+  //{
+  //  $successfulRetrieves = 0;
+  //  $successfulItems = array();
+  //  foreach ($items as $item) {
+  //    # Check if it is taken out or marked as restri
+  //    $sql = ("SELECT Status, TakeRestrict, RentBy FROM leltar WHERE UID=?");
+  //    //Get a new database connection
+  //    $connection = Database::runQuery_mysqli();
+  //    $stmt = $connection->prepare($sql);
+  //    $stmt->bind_param("s", $item);
+  //    $stmt->execute();
+  //    $result = $stmt->get_result();
+  //    $row = $result->fetch_assoc();
 
-      if ($row['Status'] == 0 && $row['RentBy'] == $userData['username']) {
-        //Item is taken out by this user.
-        $sql = "UPDATE leltar SET Status = 1, RentBy = NULL WHERE UID = ?";
-        $stmt = $connection->prepare($sql);
-        $stmt->bind_param("s", $item);
-        $stmt->execute();
+  //    if ($row['Status'] == 0 && $row['RentBy'] == $userData['username']) {
+  //      //Item is taken out by this user.
+  //      $sql = "UPDATE leltar SET Status = 1, RentBy = NULL WHERE UID = ?";
+  //      $stmt = $connection->prepare($sql);
+  //      $stmt->bind_param("s", $item);
+  //      $stmt->execute();
 
-        // Check affected rows on the prepared statement
-        if ($stmt->affected_rows == 1) {
-          // All good, return OK message
-          $successfulItems[] = $item;
-          $successfulRetrieves++;
-        }
-        $stmt->close();
-      } else {
-        continue;
-      }
-    }
-    return array('successfulRetrieves' => $successfulRetrieves, 'successfulItems' => $successfulItems);
-  }
+  //      // Check affected rows on the prepared statement
+  //      if ($stmt->affected_rows == 1) {
+  //        // All good, return OK message
+  //        $successfulItems[] = $item;
+  //        $successfulRetrieves++;
+  //      }
+  //      $stmt->close();
+  //    } else {
+  //      continue;
+  //    }
+  //  }
+  //  return array('successfulRetrieves' => $successfulRetrieves, 'successfulItems' => $successfulItems);
+  //}
 }
 
 class retrieveManager
 {
+  // Function to list the items that are taken out by the user
+  static function listUserItems($COUNT = false)
+  {
+    //Get the items that are currently by the user
+    $connection = Database::runQuery_mysqli();
+
+    $sql = "SELECT * FROM leltar WHERE RentBy = ? AND Status = 0";
+    $stmt = $connection->prepare($sql);
+    $stmt->bind_param("s", $_SESSION['userId']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $response = $result->fetch_all(MYSQLI_ASSOC);
+
+    $itemCount = count($response);
+
+    return $COUNT ? $itemCount : json_encode($response);
+  }
+
   /*
   User takeout process. Stages the takeout as it still needs to be approved on userCheck panel.
   sets the item status to 2 (needs approvement.)
   */
   static function stageRetrieve()
   {
-    //Accesses post and Session Data.
-    //CHECK if sesison data is empty!
-    $userName = $_SESSION['UserUserName'];
-    if (empty($userName)) {
-      return 400; // Session data is empty (e.g User is not loggged in.)
-    }
     date_default_timezone_set('Europe/Budapest');
     $currDate = date("Y/m/d H:i:s");
-    $data = json_decode(stripslashes($_POST['data']), true);
-    $dataArray = array();
-    $countOfRec = 0;
 
-    foreach ($data as $d) {
-      array_push($dataArray, $d["uid"]);
-    }
-    //For Use in SQL query.
+    $retrieveItems = json_decode($_POST['data'], true);
 
-    $itemNamesString = '';
-    //Append each uid to a string, separated by commas.
-    foreach ($dataArray as $uid) {
-      $itemNamesString .= "'" . $uid . "',";
-    }
-
-    //strip last comma
-    $itemNamesString = substr($itemNamesString, 0, -1);
-    // //Convert DataArraz to JSON
-    $dataString = json_encode($data);
     // Database init  - create a mysqli object
-
     $connection = Database::runQuery_mysqli();
-    if (in_array("admin", $_SESSION['groups'])) { //Auto accept 
-      $sql = " START TRANSACTION; UPDATE leltar SET leltar.Status=1, leltar.RentBy=NULL WHERE leltar.UID IN (" . $itemNamesString . ");";
-      $sql .= "INSERT INTO takelog VALUES";
-      $sql .= "(NULL, '$currDate', '$userName', '" . $dataString . "', 'IN',1,'$userName')";
-      $sql .= "; COMMIT;";;
-      if (!$connection->multi_query($sql)) {
-        printf("Error message: %s\n", $connection->error);
-      } else {
-        //All good, return OK message
-        echo 200;
-        exit();
-        return;
+
+    $status = in_array("admin", $_SESSION['groups']) ? 1 : 2;
+    $acknowledged = in_array("admin", $_SESSION['groups']) ? 1 : 0;
+    $ackBy = in_array("admin", $_SESSION['groups']) ? $_SESSION['UserUserName'] : NULL;
+    $RentBy = in_array("admin", $_SESSION['groups']) ? 'NULL' : $_SESSION['userId'];
+    try {
+      // Start transaction
+      $connection->begin_transaction();
+
+      // Update leltar
+      $stmt = $connection->prepare("UPDATE `leltar` SET `Status`=$status, `RentBy`=$RentBy WHERE `UID`=?;");
+      foreach ($retrieveItems as $item) {
+        // Check if the item is in the planned takeouts
+        $stmt->bind_param("s", $item['uid']);
+        $stmt->execute();
       }
-    } else { // Manual accept in usercheck required
-      $sql = " 
-      START TRANSACTION; UPDATE leltar SET leltar.Status=2, leltar.RentBy=NULL WHERE leltar.UID IN (" . $itemNamesString . ");";
-      $sql .= "INSERT INTO takelog VALUES";
-      $sql .= "(NULL, '$currDate', '$userName', '" . $dataString . "', 'IN',0,NULL)";
-      $sql .= "; COMMIT;";
-      if (!$connection->multi_query($sql)) {
-        printf("Error message: %s\n", $connection->error);
-      } else {
-        //All good, return OK message
-        echo 200;
-        return;
-      }
+
+      //Convert data to JSON
+      $dataJSON = json_encode($retrieveItems);
+
+      // Insert into takelog
+      $stmt = $connection->prepare("INSERT INTO takelog VALUES (NULL, ?, ?, ?, 'IN', ?, ?);");
+      $stmt->bind_param("sssis", $currDate, $_SESSION['userId'], $dataJSON, $acknowledged, $ackBy);
+      $stmt->execute();
+
+      // Commit transaction
+      $connection->commit();
+
+      // All good, return OK message
+      echo $acknowledged ? 200 : 201;
+      exit();
+    } catch (\Exception $e) {
+      // Rollback transaction if there is an error
+      $connection->rollback();
+      printf("Error message: %s\n", $e->getMessage());
     }
-  }
-
-  //Usercheck approved retrieve process. Acknowledges the takeout process and sets the item status to 1 (taken out)
-  static function approveRetrieve($value)
-  {
-    /*  If not approved (value=false) - RETRIEVE CANNOT BE declined!  */
-    /*  If approved (value=true) - RETRIEVE CANNOT BE declined!  */
-    $userName = $_SESSION['UserUserName'];
-    if (empty($userName)) {
-      return 400; // Session data is empty (e.g User is not loggged in.)
-    } else {
-      $data = json_decode(stripslashes($_POST['data']), true);
-      $dataArray = array();
-
-      foreach ($data as $d) {
-        array_push($dataArray, $d["uid"]);
-      }
-      //For Use in the SQL query.
-      $dataString = "'" . implode("','", $dataArray) . "'";
-
-      //Restore Items allowing others to take it out.
-      $sql = "START TRANSACTION; UPDATE leltar SET leltar.Status=1 WHERE leltar.UID IN (" . $dataString . ");";
-      //Acknowledge events in log.
-      $sql .= "UPDATE takelog SET Acknowledged=1, ACKBY='" . $userName . "', Date='" . date("Y/m/d H:i:s") . "' WHERE User='" . $_POST['user'] . "' AND Date='" . $_POST['date'] . "' AND EVENT='IN' AND JSON_CONTAINS(Items, '" . $_POST['data'] . "'); COMMIT;";
-
-      $connection = Database::runQuery_mysqli();
-      if (!$connection->multi_query($sql)) {
-        echo "Error message: %s\n" . $connection->error;
-      } else {
-        //All good, return OK message
-        echo 200;
-        return;
-      }
-    }
-    /*  If approved (value=true)  */
   }
 }
 
 class itemDataManager
 {
-  static function getNumberOfTotalItems()
+
+  // Change owner of items
+  static function changeOwner($items, $newUserID)
   {
-  }
-  static function getNumberOfTakenItems()
-  {
-  }
-  static function getItemData($itemTypes)
-  {
-    $displayed = "";
-    if ($itemTypes['rentable'] != 1 & $itemTypes['studio'] != 2 & $itemTypes['nonRentable'] != 3 & $itemTypes['Out'] != 4 & $itemTypes['Event'] != 5) {
-      return NULL;
-    }
-    $sql = '';
-    //Kölcsönözhető
-    if ($itemTypes['rentable'] == 1) {
-      $sql .= 'SELECT * FROM leltar WHERE TakeRestrict=""';
-      $displayed = $displayed . " Médiás";
-    }
-    //Stúdiós
-    if ($itemTypes['studio'] == 2) {
-      if (isset($_GET['rentable'])) {
-        $sql .= 'UNION SELECT * FROM leltar WHERE TakeRestrict="s"';
-        $displayed = $displayed . ", Stúdiós";
-      } else {
-        $sql = 'SELECT * FROM leltar WHERE TakeRestrict="s"';
-        $displayed = $displayed . " Stúdiós";
-      }
+    // Only admins can change the owner of items
+    if (!in_array("admin", $_SESSION['groups'])) {
+      return 403;
     }
 
-    //Eventes
-    if ($itemTypes['Event'] == 5) {
-      if (isset($_GET['rentable']) || isset($_GET['studio'])) {
-        $sql .= 'UNION SELECT * FROM leltar WHERE TakeRestrict="e"';
-        $displayed = $displayed . ", Eventes";
-      } else {
-        $sql = ' SELECT * FROM leltar WHERE TakeRestrict="e"';
-        $displayed = $displayed . "eventes";
+    try {
+      $connection = Database::runQuery_mysqli();
+      $connection->begin_transaction(); // Real backend developers use transactions XD
+
+      $newUserID = intval($newUserID);
+
+      date_default_timezone_set('Europe/Budapest');
+      $currDate = date("Y/m/d H:i:s");
+
+      // Update takelog
+      $sql = "INSERT INTO `takelog` (`Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
+        VALUES (?, ?, ?, 'CHANGE', 1, ?);";
+      $stmt = $connection->prepare($sql);
+      $stmt->bind_param("siss", $currDate, $newUserID, $items, $_SESSION['UserUserName']);
+      $stmt->execute();
+
+      $items = json_decode($items, true);
+      $items = array_map(function ($item) {
+        return $item['uid'];
+      }, $items);
+
+      $sql = "UPDATE leltar SET RentBy=? WHERE UID=?";
+      $stmt = $connection->prepare($sql);
+      $stmt->bind_param("ss", $newUserID, $item);
+      foreach ($items as $item) {
+        $stmt->execute();
       }
-    }
-    //Nem kölcsönözhető
-    if ($itemTypes['nonRentable'] == 3) {
-      //Speciális eset, ha csak a nem kölcsönözhető, stúdiós elemeket akarjuk kilistázni
-      if (isset($_GET['rentable']) || isset($_GET['studio']) || isset($_GET['Event'])) {
-        $sql .= 'UNION SELECT * FROM leltar WHERE TakeRestrict="*"';
-        $displayed = $displayed . ", Nem kölcsönözhető";
-      } else {
-        $sql = ' SELECT * FROM leltar WHERE TakeRestrict="*"';
-        $displayed = $displayed . "Nem kölcsönözhető";
-      }
-    }
-    //Kinnlevő
-    if ($itemTypes['Out'] == 4) {
-      if (isset($_GET['rentable']) || isset($_GET['studio']) || isset($_GET['nonRentable']) || isset($_GET['Event'])) {
-        $sql .= 'UNION SELECT * FROM leltar WHERE RentBy IS NOT NULL';
-        $displayed = $displayed . ", Kinnlevő";
-      } else {
-        $sql = 'SELECT * FROM leltar WHERE RentBy IS NOT NULL';
-        $displayed = $displayed . "Kinnlevő";
-      }
+
+      $connection->commit();
+    } catch (\Exception $e) {
+      echo "Error: " . $e->getMessage();
+      $connection->rollback();
+      return 500;
     }
 
-
-    $sql = $sql . " ORDER BY " . $_GET['orderByField'] . " " . $_GET['order'];
-    //echo $sql;
-    return Database::runQuery($sql);
+    return 200;
   }
-  /** Generates JSON data for takeout page, showing available and unavailable items. */
-  static function generateTakeoutJSON()
+
+  // ______________________________________________________________________________________
+
+  /*
+
+  Confirm items in the database. Sets the item status to 0 (taken out) or 1 (available)
+
+  */
+  static function confirmItems($eventID, $items, $direction)
+  {
+    if (!isset($_SESSION["userId"]))
+      return 400; // Session data is empty (e.g User is not loggged in.)
+
+    $items = json_decode($items, true);
+
+    $connection = Database::runQuery_mysqli();
+
+    // Get the user who initiated the transaction and the items
+    $sql = "SELECT UserID, Items FROM takelog WHERE ID=" . $eventID;
+    $info = $connection->query($sql);
+    $info = $info->fetch_assoc();
+    $transUser = $info['UserID'];
+    $originalItems = json_decode($info['Items'], true);
+
+    $declinedItems = array();
+
+    // For every item check if it was accepted or declined
+    foreach ($items as $item) {
+      if ($item['declined'] == 'true') {
+        $status = ($direction == 'OUT') ? 1 : 0;
+        $RentBy = ($direction == 'OUT') ? 'NULL' : $transUser;
+        $sql = "UPDATE `leltar` SET `Status` = $status, `RentBy`=$RentBy WHERE `UID` = '" . $item['uid'] . "'";
+        $connection->query($sql);
+        // Add the declined item to the list
+        $declinedItems[] = $item['uid'];
+        continue;
+      }
+
+      if ($direction == 'OUT') {
+        $sql = "UPDATE `leltar` SET `Status` = 0 WHERE `UID` = '" . $item['uid'] . "'";
+      } else {
+        $sql = "UPDATE `leltar` SET `Status` = 1, `RentBy`=NULL WHERE `UID` = '" . $item['uid'] . "'";
+      }
+      $connection->query($sql);
+    }
+
+    $sql = "UPDATE takelog SET Acknowledged=1, ACKBY='" . $_SESSION['UserUserName'] . "' WHERE ID=" . $eventID;
+    $result = $connection->query($sql);
+
+
+    if ($result == TRUE) {
+      // Check if there are any declined items
+      if (count($declinedItems) > 0) {
+
+        // Get the id and name from the original items for the declined items
+        $declinedItems = array_map(function ($item) use ($originalItems) {
+          foreach ($originalItems as $originalItem) {
+            if ($originalItem['uid'] == $item) {
+              return array('uid' => $item, 'name' => $originalItem['name']);
+            }
+          }
+        }, $declinedItems);
+
+
+        // Create a new takelog entry for the declined items
+        $sql = "INSERT INTO takelog (`ID`, `Date`, `UserID`, `Items`, `Event`,`Acknowledged`,`ACKBY`) 
+                VALUES (NULL, '" . date("Y/m/d H:i:s") . "', '" . $transUser . "', '" . json_encode($declinedItems) . "', 'DECLINE', 1, '" . $_SESSION['UserUserName'] . "')";
+        $connection->query($sql);
+
+        //Function to compare multidimensional arrays
+        function array_diff_multi($array1, $array2)
+        {
+          foreach ($array1 as $key => $value) {
+            if (array_search($value, $array2) !== false) {
+              unset($array1[$key]);
+            }
+          }
+          return array_values($array1); // Use array_values to reindex the array
+        }
+
+        // Update the takelog entry for the original items
+        $sql = "UPDATE takelog SET Items='" . json_encode(array_diff_multi($originalItems, $declinedItems)) . "' WHERE ID=" . $eventID;
+        $connection->query($sql);
+
+        // If everything was declined, delete the original takelog entry
+        if (count($originalItems) == count($declinedItems)) {
+          $sql = "DELETE FROM takelog WHERE ID=" . $eventID;
+          $connection->query($sql);
+        }
+      }
+      $connection->close();
+      return 200;
+    }
+    return 500;
+  }
+
+
+  static function getPresets()
   {
     $mysqli = Database::runQuery_mysqli();
     $rows = array();
     $mysqli->set_charset("utf8");
-    $query = "SELECT Nev, ID, UID, Category, TakeRestrict, ConnectsToItems, Status FROM leltar"; //AND Status=1 
+    $query = "SELECT Name, Items FROM takeoutpresets";
     if ($result = $mysqli->query($query)) {
       while ($row = $result->fetch_assoc()) {
-        if ($row['Status'] != "1") {
-          $row['state'] = ['disabled' => true];
-        } else {
-          $row['state'] = ['disabled' => false];
-        }
         $rows[] = $row;
       }
       $a = json_encode($rows);
       //var_dump($a);
-      $itemsJSONFile = fopen(__DIR__ . '/data/takeOutItems.json', 'w');
-      fwrite($itemsJSONFile, $a);
-      fclose($itemsJSONFile);
+      echo $a;
     }
     return;
   }
 
-  static function listItems()
+
+  //Obtains items UID and Name from the database
+  static function getItemNames()
   {
-    //Refresh takeoutJSON
-    self::generateTakeoutJSON();
-    //Return json
-    $itemsJSONFile = fopen(__DIR__ . '/data/takeOutItems.json', 'r');
-    $itemsJSON = fread($itemsJSONFile, filesize(__DIR__ . '/data/takeOutItems.json'));
-    fclose($itemsJSONFile);
-    return $itemsJSON;
+    $connection = Database::runQuery_mysqli();
+    $sql = "SELECT UID, Nev FROM leltar";
+    $stmt = $connection->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $result = json_encode($rows);
+    return $result;
   }
 
-  static function listByCriteria($itemState, $orderCriteria)
+  //Obtains every item data from the database
+  static function getItems()
   {
+    // Get a new database connection
+    $connection = Database::runQuery_mysqli();
+
+    // Prepare the SQL query
+    $sql = "SELECT leltar.*, COALESCE(leltar.RentBy, tp.UserID) as RentBy, tp.StartTime, tp.ReturnTime 
+    FROM leltar
+    LEFT JOIN (
+        SELECT tp1.Items, tp1.UserID, tp1.StartTime, tp1.ReturnTime
+        FROM takeoutPlanner tp1
+        JOIN (
+            SELECT Items, MIN(StartTime) as MinStartTime
+            FROM takeoutPlanner
+            WHERE eventState=0
+            GROUP BY Items
+        ) as tp2
+        ON tp1.Items = tp2.Items AND tp1.StartTime = tp2.MinStartTime
+    ) as tp
+    ON leltar.isPlanned = 1 AND leltar.Status = 1 AND JSON_EXTRACT(tp.Items, '$[*].uid') LIKE CONCAT('%\"', leltar.UID, '\"%')
+    ORDER BY leltar.ID";
+
+    // Execute the query
+    $stmt = $connection->prepare($sql);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+
+    // Encode the result to JSON
+    $result = json_encode($rows);
+
+    return $result;
+  }
+
+  // Function to list specific items from the database (Used on "leltar" page)
+  static function listByCriteria($itemState, $orderCriteria, $orderDirection = 'asc', $takeRestrict = 'none')
+  {
+    $takeRestrictArray = array(
+      'medias' => 'TakeRestrict=""',
+      'studios' => 'TakeRestrict="s"',
+      'eventes' => 'TakeRestrict="e"',
+      'nonRentable' => 'TakeRestrict="*"',
+      'mediaAndStudio' => '(TakeRestrict="" OR TakeRestrict="s")',
+      'mediaAndEvent' => '(TakeRestrict="" OR TakeRestrict="e")',
+      'studioAndEvent' => '(TakeRestrict="s" OR TakeRestrict="e")',
+      'mediaAndStudioAndEvent' => '(TakeRestrict="" OR TakeRestrict="s" OR TakeRestrict="e")',
+      'none' => '1=1',
+    );
+
     $stateArray = array(
-      'in' => 'RentBy IS NULL',
-      'out' => 'RentBy IS NOT NULL',
+      'in' => 'Status = 1',
+      'out' => '(Status = 0 OR Status = 2)',
       'all' => '1=1'
     );
 
@@ -403,8 +487,15 @@ class itemDataManager
       'type' => 'Tipus',
     );
 
-    $sql = "SELECT * FROM leltar WHERE " . $stateArray[$itemState] . " ORDER BY " . $orderbyArray[$orderCriteria];
-    //Get a new database connection
+    $orderDirARR = array(
+      'asc' => 'ASC',
+      'desc' => 'DESC',
+    );
+
+    $sql = "SELECT * FROM leltar WHERE " . $takeRestrictArray[$takeRestrict] . " AND " . $stateArray[$itemState] .
+      " ORDER BY " . $orderbyArray[$orderCriteria] . " " . $orderDirARR[$orderDirection];
+
+    // Get a new database connection
     $connection = Database::runQuery_mysqli();
     $stmt = $connection->prepare($sql);
     $stmt->execute();
@@ -417,30 +508,61 @@ class itemDataManager
     return $result;
   }
 
-  //Returns how many items the user has taken out.
-  static function getUserItemCount()
+  //Update item attributes in the database
+  //item: JSON-encoded data
+  static function updateItemAttributes($item)
   {
-    $sql = "SELECT * FROM leltar WHERE RentBy = ?";
-    //Get a new database connection
+    $item = json_decode($item, true);
+
+    //Check if item data is invalid
+    if (($item['UID'] == '') || ($item['Nev']) == '') {
+      echo 500;
+      return;
+    }
+
+    //modify TakeRestrict: if it is null, set it to ''
+
+    if ($item['TakeRestrict'] == NULL) {
+      $item['TakeRestrict'] = '';
+    }
+
+    $sql = "UPDATE leltar SET UID=?, Nev=?, Tipus=?, Category=?, TakeRestrict=? WHERE ID=?";
     $connection = Database::runQuery_mysqli();
     $stmt = $connection->prepare($sql);
-    $stmt->bind_param("s", $_SESSION['UserUserName']);
+    $stmt->bind_param("ssssss", $item['UID'], $item['Nev'], $item['Tipus'], $item['Category'], $item['TakeRestrict'], $item['ID']);
     $stmt->execute();
-    $result = $stmt->get_result();
-    return mysqli_num_rows($result);
+    //$result = $stmt->get_result();
+    return 200;
   }
 
-  static function listUserItems($userData)
+  static function createItem($item)
   {
-    //If userdata is empty, return a json with the error message.
-    if (empty($userData)) {
-      return json_encode(array('type' => 'error', 'text' => 'Invalid api key'));
+    $item = json_decode($item, true);
+
+    //Check if item data is invalid
+    if (($item['UID'] == '') || ($item['Nev']) == '') {
+      echo 500;
+      return;
     }
-    $sql = "SELECT * FROM leltar WHERE RentBy = ?";
+
+    $sql = "INSERT INTO `leltar` (`UID`, `Nev`, `Tipus`, `Category`, `Status`, `RentBy`, `isPlanned`, `TakeRestrict`, `ConnectsToItems`)";
+    $sql .= "VALUES (?, ?, ?, ?, '1', NULL, '0', ?, NULL)";
+    //echo $sql;
+    $connection = Database::runQuery_mysqli();
+    $stmt = $connection->prepare($sql);
+    $stmt->bind_param("sssss", $item['UID'], $item['Nev'], $item['Tipus'], $item['Category'], $item['TakeRestrict']);
+    $stmt->execute();
+    //$result = $stmt->get_result();
+    return 200;
+  }
+
+
+  static function getItemsForConfirmation()
+  {
+    $sql = "SELECT * FROM takelog WHERE Acknowledged=0 AND Event != 'SERVICE' ORDER BY DATE DESC, EVENT";
     //Get a new database connection
     $connection = Database::runQuery_mysqli();
     $stmt = $connection->prepare($sql);
-    $stmt->bind_param("s", $userData['username']);
     $stmt->execute();
     $result = $stmt->get_result();
     $rows = array();
@@ -465,7 +587,7 @@ class itemDataManager
 
   static function getServiceItemCount()
   {
-    $sql = "SELECT COUNT(*) FROM leltar WHERE RentBy='Service'";
+    $sql = "SELECT COUNT(*) FROM leltar WHERE Status=-1";
     //Get a new database connection
     $connection = Database::runQuery_mysqli();
     $stmt = $connection->prepare($sql);
@@ -478,52 +600,47 @@ class itemDataManager
 
 class itemHistoryManager
 {
-  #TODO: Take code from Pathfinder and implement it here.
-}
 
-class userManager
-{
-  /**
-   * Get every user from the database
-   */
-  static function getUsers()
+  static function getItemHistory($itemUID)
   {
-    $mysqli = Database::runQuery_mysqli();
-    $rows = array();
-    $mysqli->set_charset("utf8");
-    $query = "SELECT usernameUsers FROM users";
-    if ($result = $mysqli->query($query)) {
-      while ($row = $result->fetch_assoc()) {
-        $rows[] = $row;
-      }
-      $a = json_encode($rows);
-      //var_dump($a);
-      echo $a;
+    if (empty($itemUID)) {
+      throw new \Exception("Item UID cannot be empty");
     }
-    return;
+
+    // Construct the JSON string
+    $jsonString = json_encode(['uid' => $itemUID]);
+
+    // Use prepared statements
+    $sql = "SELECT * FROM `takelog` WHERE JSON_CONTAINS(Items, ?) ORDER BY `Date` DESC";
+    //Get a new database connection
+    $connection = Database::runQuery_mysqli();
+    $stmt = $connection->prepare($sql);
+    $stmt->bind_param('s', $jsonString);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $rows = array();
+    while ($row = $result->fetch_assoc()) {
+      $rows[] = $row;
+    }
+    $result = json_encode($rows);
+    return $result;
   }
 
-  /**
-   * Get present presets from the database
-   */
 
-  static function getPresets()
+  static function getInventoryHistory()
   {
-    $mysqli = Database::runQuery_mysqli();
-    $rows = array();
-    $mysqli->set_charset("utf8");
-    $query = "SELECT Name, Items FROM takeoutpresets";
-    if ($result = $mysqli->query($query)) {
-      while ($row = $result->fetch_assoc()) {
-        $rows[] = $row;
-      }
-      $a = json_encode($rows);
-      //var_dump($a);
-      echo $a;
-    }
-    return;
+    // Select only the last week's data
+    $sql = "SELECT * FROM `takelog` WHERE `Date` > DATE_SUB(NOW(), INTERVAL 1 WEEK) ORDER BY `Date` DESC";
+    //Get a new database connection
+    $connection = Database::runQuery_mysqli();
+    $result = $connection->query($sql);
+    $rows = $result->fetch_all(MYSQLI_ASSOC);
+    $result = json_encode($rows);
+    return $result;
   }
+
 }
+
 
 /**
  * Handle URL requests
@@ -533,42 +650,58 @@ if (isset($_POST['mode'])) {
   //Set timezone to the computer's timezone.
   date_default_timezone_set('Europe/Budapest');
 
-  if ($_POST['mode'] == 'takeOutStaging') {
-    echo takeOutManager::stageTakeout();
-    //Header set.
-    exit();
+  if ($_POST['mode'] == 'stageTakeout') {
+    echo takeOutManager::stageTakeout($_POST['items']);
   }
-  if ($_POST['mode'] == 'takeOutApproval') {
-    echo takeOutManager::approveTakeout($_POST['value']);
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
+  if ($_POST['mode'] == 'listUserItems') {
+    echo retrieveManager::listUserItems();
   }
   if ($_POST['mode'] == 'retrieveStaging') {
     echo retrieveManager::stageRetrieve();
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
-  }
-  if ($_POST['mode'] == 'retrieveApproval') {
-    echo retrieveManager::approveRetrieve($_POST['value']);
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
   }
 
-  if ($_POST['mode'] == 'getUsers') {
-    echo userManager::getUsers();
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
+  //Handles item ownership change
+  if ($_POST['mode'] == 'changeOwner') {
+    echo itemDataManager::changeOwner($_POST['items'], $_POST['newOwner']);
+  }
+
+  if ($_POST['mode'] == 'confirmItems') {
+    echo itemDataManager::confirmItems($_POST['eventID'], $_POST['items'], $_POST['direction']);
+  }
+  if ($_POST['mode'] == 'getItems') {
+    echo itemDataManager::getItems();
+  }
+
+  if ($_POST['mode'] == 'getItemNames') {
+    echo itemDataManager::getItemNames();
+  }
+
+  if ($_POST['mode'] == 'listByCriteria') {
+    echo itemDataManager::listByCriteria($_POST['itemState'], $_POST['orderCriteria'], $_POST['orderDirection'], $_POST['takeRestrict']);
+  }
+
+  if ($_POST['mode'] == 'getItemHistory') {
+    echo itemHistoryManager::getItemHistory($_POST['itemUID']);
+  }
+
+  if ($_POST['mode'] == 'getInventoryHistory') {
+    echo itemHistoryManager::getInventoryHistory();
   }
 
   if ($_POST['mode'] == 'getPresets') {
-    echo userManager::getPresets();
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
+    echo itemDataManager::getPresets();
+  }
+
+  if ($_POST['mode'] == 'getItemsForConfirmation') {
+    echo itemDataManager::getItemsForConfirmation();
+  }
+
+  if ($_POST['mode'] == 'updateItemAttributes') {
+    echo itemDataManager::updateItemAttributes($_POST['item']);
+  }
+
+  if ($_POST['mode'] == 'createItem') {
+    echo itemDataManager::createItem($_POST['item']);
   }
 
   if ($_POST['mode'] == 'getProfileItemCounts') {
@@ -576,7 +709,7 @@ if (isset($_POST['mode'])) {
     echo ",";
     echo itemDataManager::getToBeUserCheckedCount();
     echo ",";
-    echo itemDataManager::getUserItemCount();
-    exit();
+    echo retrieveManager::listUserItems(true);
   }
+  exit();
 }

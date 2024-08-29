@@ -24,17 +24,19 @@ class synologyAPICommunicationManager
 		$NAS_username = urlencode($NAS_username);
 		$NAS_password = urlencode($NAS_password);
 
-		curl_setopt_array($curl, array(
-			CURLOPT_URL => "https://" . $NAS_domain . "/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login&account=" . $NAS_username . "&passwd=" . $NAS_password . "&session=FileStation&format=sid",
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING => "",
-			CURLOPT_MAXREDIRS => 10,
-			CURLOPT_TIMEOUT => 30,
-			CURLOPT_SSL_VERIFYHOST => 0,
-			CURLOPT_SSL_VERIFYPEER => 0,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST => "GET",
-		)
+		curl_setopt_array(
+			$curl,
+			array(
+				CURLOPT_URL => "https://" . $NAS_domain . "/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=login&account=" . $NAS_username . "&passwd=" . $NAS_password . "&session=FileStation&format=sid",
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => "",
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 30,
+				CURLOPT_SSL_VERIFYHOST => 0,
+				CURLOPT_SSL_VERIFYPEER => 0,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST => "GET",
+			)
 		);
 
 		$response = curl_exec($curl);
@@ -72,17 +74,19 @@ class synologyAPICommunicationManager
 
 
 
-		curl_setopt_array($curl, array(
-			CURLOPT_URL => "https://" . $NAS_domain . $url . "&_sid=" . $this->sid,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING => "",
-			CURLOPT_MAXREDIRS => 10,
-			CURLOPT_TIMEOUT => 30,
-			CURLOPT_SSL_VERIFYHOST => 0,
-			CURLOPT_SSL_VERIFYPEER => 0,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST => $method,
-		)
+		curl_setopt_array(
+			$curl,
+			array(
+				CURLOPT_URL => "https://" . $NAS_domain . $url . "&_sid=" . $this->sid,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => "",
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 30,
+				CURLOPT_SSL_VERIFYHOST => 0,
+				CURLOPT_SSL_VERIFYPEER => 0,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST => $method,
+			)
 		);
 
 		$response = curl_exec($curl);
@@ -96,37 +100,47 @@ class synologyAPICommunicationManager
 		//echo $err;
 	}
 
+	function downloadReq($path)
+	{
+		return 'https://' . $this->credentials['NAS_domain'] . '/webapi/entry.cgi?api=SYNO.FileStation.Download&version=2&method=download&path=' . urlencode($path) . '&mode=download&_sid=' . $this->sid . '';
+	}
+
 	function logout()
 	{
 		$NAS_domain = $this->credentials['NAS_domain'];
 		$curl = curl_init();
-		curl_setopt_array($curl, array(
-			CURLOPT_URL => "https://" . $NAS_domain . "/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=logout&session=FileStation&_sid=" . $this->sid,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_ENCODING => "",
-			CURLOPT_MAXREDIRS => 10,
-			CURLOPT_TIMEOUT => 30,
-			CURLOPT_SSL_VERIFYHOST => 0,
-			CURLOPT_SSL_VERIFYPEER => 0,
-			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-			CURLOPT_CUSTOMREQUEST => "GET",
-		)
+		curl_setopt_array(
+			$curl,
+			array(
+				CURLOPT_URL => "https://" . $NAS_domain . "/webapi/auth.cgi?api=SYNO.API.Auth&version=3&method=logout&session=FileStation&_sid=" . $this->sid,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => "",
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 30,
+				CURLOPT_SSL_VERIFYHOST => 0,
+				CURLOPT_SSL_VERIFYPEER => 0,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST => "GET",
+			)
 		);
 
 		$response = curl_exec($curl);
 		$err = curl_error($curl);
 		curl_close($curl);
 
-		echo $response;
-		echo $err;
+		$this->sid = null;
+
+		//echo $response;
+		//echo $err;
 	}
 
 	function getSid()
 	{
 		return $this->sid;
 	}
+
 }
-$api = new synologyAPICommunicationManager();
+//$api = new synologyAPICommunicationManager();
 if (isset($_GET['mode'])) {
 
 	if (($_GET['mode']) == 'obtainAPIKey') {

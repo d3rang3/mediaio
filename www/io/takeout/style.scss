@@ -1,0 +1,327 @@
+#selectMenu {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    max-height: 70px;
+    padding-left: 10px;
+    padding-right: 10px;
+
+    @media (max-width: 488px) {
+        justify-content: flex-start;
+    }
+
+    * {
+        display: flex;
+        min-width: fit-content;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+
+#itemsList {
+    display: block;
+    width: 100%;
+    overflow: auto;
+    white-space: nowrap;
+    position: relative;
+    margin-top: 5px;
+    margin-left: auto;
+    margin-right: auto;
+
+    padding-left: 5px;
+    height: calc(100vh - 270px);
+    min-height: 300px;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 12px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+
+    @media (max-width: 575px) {
+        height: calc(100dvh - 290px);
+        font-size: large;
+        width: 100%;
+    }
+}
+
+
+#takeout-option-buttons {
+
+    .btn {
+        position: relative;
+        /*  width: max-content; */
+    }
+
+    #show_selected {
+        width: 100%;
+        display: none;
+    }
+
+
+    display: flex;
+    flex-direction:row;
+    gap: 5px;
+    row-gap: 2px;
+    width: 100%;
+    margin-left: 0;
+
+    @media (max-width: 990px) {
+        align-items: center;
+        gap: 1%;
+        flex-wrap: wrap;
+
+        .btn {
+            width: 32.6%;
+        }
+    }
+
+    @media (max-width: 575px) {
+
+        #show_selected {
+            display: block;
+        }
+
+        #takeout2BTN {
+            display: none;
+        }
+
+    }
+
+}
+
+.filterCheckbox {
+    pointer-events: none;
+}
+
+
+#takeout-container {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+
+    #selected-desktop #output-desktop {
+        display: none;
+    }
+
+    @media (max-width: 575px) {
+        #selected-desktop {
+            display: none;
+        }
+    }
+}
+
+.selectedList {
+    max-height: 80dvh;
+    overflow: auto;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+.selected-card {
+    /* Animation when appending card */
+    animation: fadeIn 0.3s;
+
+    &.special {
+        color: rgb(255, 76, 76);
+    }
+
+    &.event {
+        color: rgb(29, 124, 29);
+    }
+
+    &.studio {
+        color: rgb(64, 64, 168);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.leltarItem {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    cursor: pointer;
+
+    white-space: normal;
+    word-wrap: break-word;
+    margin-bottom: 5px;
+
+    @media (max-width: 575px) {
+        .leltarItemLabel {
+            font-size: larger;
+        }
+    }
+
+    &.special {
+        color: rgb(255, 76, 76);
+    }
+
+    &.event {
+        color: rgb(29, 124, 29);
+    }
+
+    &.studio {
+        color: rgb(64, 64, 168);
+    }
+}
+
+.selected {
+    background-color: #b0e4fe;
+}
+
+.highlight {
+    background-color: yellow;
+}
+
+.leltarItemLabel {
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.leltarItemCheckbox {
+    cursor: pointer;
+    margin-top: 0;
+}
+
+
+.differentUser {
+    color: rgb(90, 90, 90);
+    font-style: italic;
+}
+
+/* Animations */
+
+@keyframes orangeColor {
+    0% {
+        color: #000;
+    }
+
+    100% {
+        color: rgb(219, 135, 40);
+    }
+}
+
+@keyframes grayColor {
+    0% {
+        color: #000;
+    }
+
+    100% {
+        color: rgb(179, 179, 179);
+    }
+}
+
+
+
+/* Calendar */
+
+#calendar {
+    a {
+        /* Remove any css from links */
+        text-decoration: none;
+        color: inherit;
+    }
+
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.fc-scroller {
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+.fc-daygrid-event-harness {
+    cursor: pointer;
+}
+
+#plannedEventsItems {
+    margin-left: 10px;
+    max-height: 300px;
+    height: 100%;
+    overflow: auto;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}

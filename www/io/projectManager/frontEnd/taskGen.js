@@ -1,28 +1,55 @@
 
-
-
 async function generateTasks(projectID, canEdit) {
-    let taskHolder = document.createElement("div");
+
+    const taskHolder = document.createElement("div");
     taskHolder.classList.add("taskHolder");
-    taskHolder.id = projectID + "-taskHolder";
+    taskHolder.id = `${projectID}-taskHolder`;
 
     // Fetch the tasks
     let tasks = await fetchTask(projectID);
     // Parse the tasks
     tasks = JSON.parse(tasks);
-
-    // Append each task to taskHolder
-    for (let i = 0; i < tasks.length; i++) {
-        taskHolder.appendChild(await createTask(tasks[i], projectID, canEdit));
+    // Check if tasks is an array (are there any tasks?)
+    if (!Array.isArray(tasks)) {
+        tasks = [];
     }
+
+    // Create a document fragment
+    const fragment = document.createDocumentFragment();
+
+    // Append each task to the fragment
+    const taskElements = await Promise.all(tasks.map(task => createTask(task, projectID, canEdit)));
+    taskElements.forEach(taskElement => fragment.appendChild(taskElement));
+
+    // Append the fragment to taskHolder
+    taskHolder.appendChild(fragment);
+
 
     return taskHolder;
 }
 
 async function createTask(task, projectID, canEdit) {
-    var uData = await userTaskData(task.ID, projectID);
+    let uData = JSON.parse(await userTaskData(task.ID, 'card', projectID));
+    //console.log(uData);
+    const taskCard = createTaskCard(task, projectID, canEdit);
+    const taskHeader = createTaskHeader(task);
+    const taskBody = createTaskBody(task);
+    const taskFooter = createTaskFooter(task, taskHeader, projectID, uData);
 
-    let taskCard = document.createElement("div");
+
+    taskCard.appendChild(taskHeader);
+    taskCard.appendChild(taskBody);
+
+    if ((uData.isTaskMember || uData.isAdmin) && taskFooter.childElementCount != 0) {
+        taskCard.appendChild(taskFooter);
+    }
+
+    return taskCard;
+}
+
+function createTaskCard(task, projectID, canEdit) {
+
+    const taskCard = document.createElement("div");
     taskCard.classList.add("card", "taskCard");
     taskCard.id = "task-" + task.ID;
     taskCard.draggable = false;
@@ -52,19 +79,15 @@ async function createTask(task, projectID, canEdit) {
         });
     }
 
-    // Add task creator tooltip
-    var creatorfirstName = task.CreatorFirstName;
-    var creatorlastName = task.CreatorLastName;
-    var creatorUsername = task.CreatorUsername;
+    return taskCard;
+}
 
-
-    var creatorTooltip = '<a data-bs-toggle="tooltip" data-bs-title="Készítette: ' + creatorlastName + " " + creatorfirstName + " (" + creatorUsername + ")" + '"><i class="fas fa-info-circle"></i></a>';
-
-    var taskHeader = document.createElement("div");
+function createTaskHeader(task) {
+    const taskHeader = document.createElement("div");
     taskHeader.classList.add("card-header", "taskHeader");
 
     if (task.Task_title) {
-        var taskTitle = document.createElement("p");
+        const taskTitle = document.createElement("p");
         taskTitle.classList.add("card-title", "taskTitle");
         taskTitle.style.marginBottom = "0px";
         taskTitle.innerHTML = task.Task_title;
@@ -72,14 +95,23 @@ async function createTask(task, projectID, canEdit) {
     } else {
         taskHeader.style.justifyContent = "end";
     }
-    let creatorSpan = document.createElement("div");
+    // Add task editor tooltip
+    const lastEditorfirstName = task.EditorFirstName;
+    const lastEditorlastName = task.EditorLastName;
+    const lastEditorUsername = task.EditorUsername;
+
+    const lastEditedTime = task.Last_edit;
+
+    const creatorTooltip = `<a data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="<i class='fas fa-pencil-alt'></i>: ${lastEditorlastName} ${lastEditorfirstName} (${lastEditorUsername})<br>${lastEditedTime}"><i class="fas fa-info-circle"></i></a>`;
+
+    const creatorSpan = document.createElement("div");
     //creatorSpan.classList.add("badge", "bg-light", "text-dark");
     creatorSpan.innerHTML = creatorTooltip;
     taskHeader.appendChild(creatorSpan);
 
     // Create drag handle
     if (window.innerWidth > 768) {
-        let dragHandle = document.createElement("span");
+        const dragHandle = document.createElement("span");
         dragHandle.classList.add("dragHandle");
         dragHandle.innerHTML = "<i class='fas fa-grip-vertical'></i>";
         dragHandle.style.marginLeft = "5px";
@@ -88,63 +120,90 @@ async function createTask(task, projectID, canEdit) {
         creatorSpan.appendChild(dragHandle);
     }
 
-    taskCard.appendChild(taskHeader);
+    return taskHeader;
+}
 
-    let taskBody = document.createElement("div");
+function createTaskBody(task) {
+    const taskBody = document.createElement("div");
     taskBody.classList.add("card-body", "taskBody");
 
     // Generate certain task elements
 
     switch (task.Task_type) {
 
-        case "text":
-            let text = document.createElement("p");
-            text.classList.add("card-text", "taskText");
-            text.innerHTML = makeFormatting(task.Task_data);
-            taskBody.appendChild(text);
-            break;
-
-        case 'image':
+        case "task":
             var taskData = JSON.parse(task.Task_data);
 
-            let imageContainer = document.createElement("div");
-            imageContainer.style.position = "relative";
+            if (taskData.image == '') {
+                const caption = document.createElement("p");
+                caption.classList.add("card-text", "taskText");
+                caption.innerHTML = makeFormatting(taskData.text);
+                taskBody.appendChild(caption);
+            } else {
 
-            let image = document.createElement("img");
-            image.classList.add("card-img-top", "taskImage");
-            image.src = taskData.image;
-            imageContainer.appendChild(image);
+                const imageContainer = document.createElement("div");
+                imageContainer.style.position = "relative";
 
-            var expandButton = document.createElement("button");
-            expandButton.classList.add("btn", "btn-sm", "expandButton");
-            expandButton.style.position = "absolute";
-            expandButton.style.top = "10px";
-            expandButton.style.right = "10px";
-            expandButton.style.color = "white";
-            expandButton.innerHTML = "<i class='fas fa-expand-alt'></i>";
-            expandButton.onclick = function () {
-                document.getElementById('expandedImage').src = taskData.image;
-                document.getElementById('imgDownloadButton').onclick = function () {
-                    // Download the image
-                    let imageUrl = taskData.image;
-                    let imageName = "image.jpg";
-                    let a = document.createElement("a");
-                    a.href = imageUrl;
-                    a.download = imageName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                const image = document.createElement("img");
+                image.classList.add("card-img-top", "taskImage");
+                image.src = taskData.image;
+                imageContainer.appendChild(image);
+
+                const expandButton = document.createElement("button");
+                expandButton.classList.add("btn", "btn-sm", "expandButton");
+                expandButton.style.position = "absolute";
+                expandButton.style.top = "10px";
+                expandButton.style.right = "10px";
+                expandButton.style.color = "white";
+                expandButton.innerHTML = "<i class='fas fa-expand-alt'></i>";
+                expandButton.onclick = function () {
+                    document.getElementById('expandedImage').src = taskData.image;
+                    document.getElementById('imgDownloadButton').onclick = function () {
+                        // Download the image
+                        let imageUrl = taskData.image;
+                        let imageName = "image.jpg";
+                        let a = document.createElement("a");
+                        a.href = imageUrl;
+                        a.download = imageName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                    $('#expandImageModal').modal('show');
                 }
-                $('#expandImageModal').modal('show');
+                imageContainer.appendChild(expandButton);
+
+                taskBody.appendChild(imageContainer);
+
+                const caption = document.createElement("p");
+                caption.classList.add("card-text", "taskText");
+                caption.innerHTML = makeFormatting(taskData.text);
+                taskBody.appendChild(caption);
             }
-            imageContainer.appendChild(expandButton);
 
-            taskBody.appendChild(imageContainer);
+            if (taskData.files != '') {
+                let files = taskData.files;
+                let filesContainer = document.createElement("div");
+                filesContainer.classList.add("taskCardFiles");
+                files.forEach(file => {
+                    let fileDiv = document.createElement("div");
+                    fileDiv.classList.add("fileElement");
+                    fileDiv.innerHTML = `<i class="fas fa-file"></i> <a href="${file.link}" target="_blank">${file.name}</a>`;
 
-            let caption = document.createElement("p");
-            caption.classList.add("card-text", "taskText");
-            caption.innerHTML = makeFormatting(taskData.text);
-            taskBody.appendChild(caption);
+                    let downloadButton = document.createElement("button");
+                    downloadButton.classList.add("btn", "btn-sm", "btn-secondary", "float-end");
+                    downloadButton.style.marginLeft = "5px";
+                    downloadButton.innerHTML = '<i class="fas fa-download"></i>';
+                    downloadButton.onclick = function (event) {
+                        event.preventDefault();
+                        getDownloadLink(file.path);
+                    }
+
+                    fileDiv.appendChild(downloadButton);
+                    filesContainer.appendChild(fileDiv);
+                });
+                taskBody.appendChild(filesContainer);
+            }
             break;
         case 'checklist':
             cardCheckOrRadio(taskBody, task, "checklist");
@@ -154,23 +213,27 @@ async function createTask(task, projectID, canEdit) {
             break;
     }
 
-    taskCard.appendChild(taskBody);
+    return taskBody;
+}
 
-
-    cardFooter = document.createElement("div");
-    cardFooter.classList.add("card-footer", "taskFooter");
+function createTaskFooter(task, taskHeader, projectID, uData) {
+    const taskFooter = document.createElement("div");
+    taskFooter.classList.add("card-footer", "taskFooter");
 
     // check deadline and color the card accordingly
     if (task.Deadline) {
-        var deadlineText = await getDeadline(task.Deadline);
-        if (task.isSubmittable && uData == 100 || !task.isSubmittable) {
+        var deadlineText = getDeadline(task.Deadline);
+        let shouldDisplayDeadline = uData.isAdmin || (uData.isTaskMember && !uData.filled) && task.isInteractable;
+        if (shouldDisplayDeadline) {
             colorTaskCard(taskHeader, task.Deadline);
             let deadline = document.createElement("span");
             deadline.classList.add("badge");
-            deadline.innerHTML = deadlineText;
-            //deadline.innerHTML = `<a data-bs-toggle="tooltip" data-bs-title="${task.Deadline.slice(0, -3)}">${deadlineText}</a>`;
+            deadline.innerHTML = `<a data-bs-toggle="tooltip" data-bs-title="${task.Deadline.slice(0, -3)}">${deadlineText}</a>`;
             let deadlineColor = getDeadlineColor(task.Deadline);
             switch (deadlineColor) {
+                case "longAgo":
+                    deadline.classList.add("bg-secondary");
+                    break;
                 case "overdue":
                     deadline.classList.add("bg-danger");
                     break;
@@ -181,18 +244,14 @@ async function createTask(task, projectID, canEdit) {
                     deadline.classList.add("bg-success", "text-white");
                     break;
             }
-            cardFooter.appendChild(deadline);
+            taskFooter.appendChild(deadline);
         }
-        else {
-            cardFooter.style.justifyContent = "end";
-        }
-    } else {
-        cardFooter.style.justifyContent = "end";
     }
 
     // Check if task is filled out
-    if (task.isSubmittable == 1 && uData != 404) {
-        if (uData != 100) {
+    if (task.isInteractable == 1) {
+        let shouldDisplayAnswer = uData.filled && uData.isTaskMember;
+        if (uData.isAdmin || shouldDisplayAnswer) {
             // Add show answers button
             let showAnswersButton = document.createElement("button");
             showAnswersButton.classList.add("btn", "btn-sm", "showAnswersButton");
@@ -200,128 +259,91 @@ async function createTask(task, projectID, canEdit) {
             showAnswersButton.onclick = function () {
                 openTaskAnswers(task.ID, projectID);
             }
-            cardFooter.appendChild(showAnswersButton);
-            cardFooter.style.justifyContent = "space-between";
+            taskFooter.appendChild(showAnswersButton);
         }
-        if (uData == 100 || task.SingleAnswer == 0) {
-            // ADD fill out button to task
-            let fillOutButton = document.createElement("button");
-            fillOutButton.classList.add("btn", "btn-sm", "fillOutButton", uData != 100 ? "btn-warning" : "btn-primary");
-            fillOutButton.innerHTML = uData != 100 ? "Módosítás" : "Kitöltés";
-            fillOutButton.onclick = function () {
-                fillOutTask(task.ID);
+        if (uData.isTaskMember) {
+            let shouldAddButton = task.SingleAnswer == '0' || !uData.filled;
+            if (shouldAddButton) {
+                // ADD fill out button to task
+                let fillOutButton = document.createElement("button");
+                fillOutButton.classList.add("btn", "btn-sm", "fillOutButton", uData.filled ? "btn-warning" : "btn-primary");
+                fillOutButton.innerHTML = uData.filled && JSON.parse(uData.data.Data) != 'reverted' ? "Módosítás" : "Kitöltés"; // If the user has already filled out the task, change the button text to "Modify"
+                fillOutButton.onclick = function () {
+                    fillOutTask(task.ID);
+                }
+                taskFooter.appendChild(fillOutButton);
+            } else if (task.SingleAnswer == '1' && uData.filled) {
+                // Add "Leadva" text
+                let filledOutText = document.createElement("p");
+                filledOutText.classList.add("card-text", "taskText");
+                filledOutText.innerHTML = "<i>Leadva</i>";
+                taskFooter.appendChild(filledOutText);
             }
-            cardFooter.appendChild(fillOutButton);
-        } else {
-            // Add "Leadva" text
-            let filledOutText = document.createElement("p");
-            filledOutText.classList.add("card-text", "taskText");
-            filledOutText.innerHTML = "<i>Leadva</i>";
-            cardFooter.appendChild(filledOutText);
         }
-
-        taskCard.appendChild(cardFooter);
     }
 
-    return taskCard;
+    // Based on the number of items in the taskFooter, adjust the justify-content
+    if (task.Deadline && !task.isInteractable) {
+        taskFooter.style.justifyContent = "start";
+    } else {
+        taskFooter.style.justifyContent = "space-between";
+    }
+
+    return taskFooter;
 }
 
-
-
 async function openTask(TaskId, projectID) {
-    console.log("Opening task: " + TaskId);
+    // Display task editor modal
+    $('#taskEditorModal').modal('show');
 
     // Fetch task
-    let task = await fetchTask(null, TaskId);
+    const task = JSON.parse(await fetchTask(null, TaskId));
+    //console.log(task);
     if (task == 403) {
         noAccessToast();
         return;
     }
-    //console.log(task);
-    task = JSON.parse(task);
 
-    let modalTitle = document.getElementById("taskTitle");
+    const modalTitle = document.getElementById("taskTitle");
     modalTitle.innerHTML = "Feladat szerkesztése";
 
     // Get the task data holder
-    let taskDataHolder = document.getElementById("taskData");
+    const taskDataHolder = document.getElementById("taskData");
     taskDataHolder.innerHTML = "";
 
     // Get the task title
-    let taskTitle = task.Task_title;
-    document.getElementById("textTaskName").value = taskTitle;
+    document.getElementById("textTaskName").value = task.Task_title;
 
-    // Get the task data
-    let taskData = task.Task_data;
+    const filediv = document.getElementById("taskFileManager");
+    filediv.style.display = "none";
 
-    document.getElementById("fillOutText").style.display = "none";
-    document.getElementById("fillOutText").value = task.fillOutText;
-
+    const fileHolder = document.getElementById("taskFiles");
+    fileHolder.innerHTML = "";
     switch (task.Task_type) {
-        case "text":
-            textEditor(taskDataHolder, taskData, "150px");
-            document.getElementById("fillOutText").style.display = "block";
-            break;
-        case "image":
-            taskData = JSON.parse(taskData);
-            textEditor(taskDataHolder, taskData.text, "100px");
-            document.getElementById("fillOutText").style.display = "block";
-
-
-            let imageInput = document.createElement("input");
-            imageInput.classList.add("form-control", "mb-2");
-            imageInput.id = "imageLink";
-            imageInput.value = taskData.image;
-            imageInput.placeholder = "Kép URL...";
-            taskDataHolder.appendChild(imageInput);
-
-            let uploadDiv = document.createElement("div");
-            uploadDiv.classList.add("input-group");
-
-            let uploadImage = document.createElement("input");
-            uploadImage.type = "file";
-            uploadImage.classList.add("form-control");
-            uploadImage.placeholder = "Kép feltöltése";
-            uploadImage.name = "fileToUpload";
-            uploadImage.id = "imageUpload";
-            uploadImage.accept = "image/*";
-            uploadDiv.appendChild(uploadImage);
-
-            let resetButton = document.createElement("button");
-            resetButton.classList.add("btn", "btn-outline-danger");
-            resetButton.type = "button";
-            resetButton.innerHTML = "Törlés";
-            resetButton.onclick = function () {
-                deleteImage(TaskId);
-            }
-            uploadDiv.appendChild(resetButton);
-
-            taskDataHolder.appendChild(uploadDiv);
+        case "task":
+            taskBodyGenerator(projectID, TaskId, taskDataHolder, task.Task_data, task.NASPath);
             break;
         case "checklist":
         case "radio":
-            generateCheckOrRadioEditor(taskDataHolder, taskData, task.Task_type);
-            document.getElementById('taskSubmittable').classList.add('active');
+            generateCheckOrRadioEditor(taskDataHolder, task.Task_type, task.Task_data);
             break;
     }
 
     // Get task assigned users
-
-    let taskMembers = await fetchTaskMembers(TaskId, projectID);
-    taskMembers = JSON.parse(taskMembers);
-
-
-    let taskMembersHolder = document.getElementById("taskMembers");
+    const taskMembers = JSON.parse(await fetchTaskMembers(TaskId, projectID));
+    const taskMembersHolder = document.getElementById("taskMembers");
     taskMembersHolder.innerHTML = "<i>Adj hozzá tagokat a projekthez először!</i>";
 
     if (taskMembers != null) {
+        const fragment = document.createDocumentFragment();
         taskMembersHolder.innerHTML = "";
+
         taskMembers.forEach(member => {
-            var option = document.createElement("div");
+            const option = document.createElement("div");
             option.classList.add("availableMember");
             option.style.cursor = "pointer";
             option.id = member.UserId;
-            option.innerHTML = `${member.lastName} ${member.firstName}`;
+            option.textContent = `${member.lastName} ${member.firstName}`;
             option.onclick = function () {
                 this.classList.toggle("selectedMember");
             }
@@ -330,60 +352,65 @@ async function openTask(TaskId, projectID) {
                 option.classList.add("selectedMember");
             }
 
-            taskMembersHolder.appendChild(option);
+            fragment.appendChild(option);
         });
-    }
 
-    // Set the task submittable checkbox
-    if (task.isSubmittable == 1) {
-        document.getElementById("taskSubmittable").classList.add("active");
-        document.getElementById("singleAnswer").disabled = false;
-    } else {
-        document.getElementById("taskSubmittable").classList.remove("active");
-        document.getElementById("singleAnswer").disabled = true;
-    }
-
-    if (task.SingleAnswer == 1) {
-        document.getElementById("singleAnswer").classList.add("active");
-    } else {
-        document.getElementById("singleAnswer").classList.remove("active");
+        taskMembersHolder.appendChild(fragment);
     }
 
     // Get the task deadline
-    let deadline = task.Deadline;
-    let [date, time] = deadline ? deadline.split(" ") : ["", ""];
-    time = time ? time.split(':').slice(0, 2).join(':') : "";
+    const [date, time] = task.Deadline ? task.Deadline.split(" ").map((val, i) => i ? val.split(':').slice(0, 2).join(':') : val) : ["", ""];
 
     document.getElementById("taskDate").value = date;
     document.getElementById("taskTime").value = time;
 
     // Set max date to project deadline
-    let projectDeadline = task.ProjectDeadline;
-    if (projectDeadline) {
-        document.getElementById("taskDate").max = projectDeadline.split(" ")[0];
+    if (task.ProjectDeadline) {
+        document.getElementById("taskDate").max = task.ProjectDeadline.split(" ")[0];
     }
 
+    // Set the task submission settings
+    await submissionSettings(task.Task_type, task);
 
     // Add delete button
+    const deleteButton = document.getElementById("deleteTask");
+    deleteButton.style.display = task.canDelete ? "block" : "none";
     if (task.canDelete) {
-        let deleteButton = document.getElementById("deleteTask");
-        deleteButton.style.display = "block";
         deleteButton.onclick = function () {
             deleteTask(TaskId);
         }
-    } else {
-        let deleteButton = document.getElementById("deleteTask");
-        deleteButton.style.display = "none";
     }
 
     // Add save button
-    let saveButton = document.getElementById("saveNewTask");
-    saveButton.onclick = function () {
-        saveTaskSettings(TaskId, task.Task_type, projectID);
-    }
+    const saveButton = document.getElementById("saveNewTask");
 
-    // Display task editor modal
-    $('#taskEditorModal').modal('show');
+    // Enable the button and remove the previous event listener
+    saveButton.disabled = false;
+    try {
+        saveButton.removeEventListener('click', saveButtonHandler);
+    } catch (error) {
+        console.log("No event listener to remove");
+    }
+    // Create a new event handler with the current TaskId, taskType, and projectID
+    saveButtonHandler = createSaveButtonHandler(TaskId, task.Task_type, projectID);
+
+    // Add the new event listener
+    saveButton.addEventListener('click', saveButtonHandler);
+
+    // For development purposes, add task id to modal footer
+    document.getElementById("taskEditorIDspan").innerHTML = `ID: ${TaskId}`;
+}
+
+// Define the event handler function outside of the settings function
+function createSaveButtonHandler(TaskId, taskType, projectID) {
+    return async function saveButtonHandler(e) {
+        e.preventDefault();
+        this.disabled = true;
+        setTimeout(() => {
+            this.disabled = false;
+        }, 1000);
+        saveTaskSettings(TaskId, taskType, projectID);
+    };
 }
 
 function fillOutTask(TaskId) {
@@ -399,7 +426,7 @@ function fillOutTask(TaskId) {
             document.getElementById("taskFillTitle").innerHTML = taskTitle;
 
             // Get the task data
-            let taskData = task.Task_data;
+            let taskData = JSON.parse(task.Task_data);
             let taskBody = document.getElementById("taskFillData");
             taskBody.innerHTML = "";
 
@@ -409,34 +436,24 @@ function fillOutTask(TaskId) {
             }
 
             switch (task.Task_type) {
-                case "text":
+                case "task":
+                    if (taskData.image != "") {
+                        let image = document.createElement("img");
+                        image.classList.add("card-img-top", "taskImage", "mb-2");
+                        image.src = taskData.image;
+                        taskBody.appendChild(image);
+                    }
+
                     let text = document.createElement("p");
                     text.classList.add("card-text", "taskText");
-                    text.innerHTML = makeFormatting(taskData);
+                    text.innerHTML = makeFormatting(taskData.text);
                     taskBody.appendChild(text);
-
-                    addFillOutText(taskBody, task.fillOutText, TaskId);
-
-                    break;
-                case "image":
-                    taskData = JSON.parse(taskData);
-                    let image = document.createElement("img");
-                    image.classList.add("card-img-top", "taskImage", "mb-2");
-                    image.src = taskData.image;
-                    taskBody.appendChild(image);
-
-                    let caption = document.createElement("p");
-                    caption.classList.add("card-text", "taskText");
-                    caption.innerHTML = makeFormatting(taskData.text);
-                    taskBody.appendChild(caption);
 
                     addFillOutText(taskBody, task.fillOutText, TaskId);
                     break;
                 case "checklist":
-                    generateCheckOrRadioFillOut(taskBody, task, "checklist");
-                    break;
                 case "radio":
-                    generateCheckOrRadioFillOut(taskBody, task, "radio");
+                    generateCheckOrRadioFillOut(taskBody, task, task.Task_type);
                     break;
             }
 
@@ -484,7 +501,7 @@ async function addFillOutText(taskBody, fillOutText, taskId) {
 
     // Create a div for the checkbox
     let fillOutDiv = document.createElement("div");
-    fillOutDiv.classList.add("form-check");
+    fillOutDiv.classList.add("form-check", "d-flex");
 
     // Create a checkbox
     let fillOutCheckbox = document.createElement("input");
@@ -524,83 +541,22 @@ async function addNewTask(projectID, taskType, deadline = null) {
     taskDataLabel.innerHTML = "Adatok:";
     taskDataHolder.appendChild(taskDataLabel);
 
-    document.getElementById("fillOutText").style.display = "none";
+    const filediv = document.getElementById("taskFileManager");
+    filediv.style.display = "none";
+
+    const fileHolder = document.getElementById("taskFiles");
+    fileHolder.innerHTML = "";
+
     switch (taskType) {
-        case "text":
+        case "task":
             modalTitle.innerHTML = "Új feladat hozzáadása";
-            document.getElementById("fillOutText").style.display = "block";
-            textEditor(taskDataHolder);
-            break;
-
-        case "image":
-            modalTitle.innerHTML = "Új kép hozzáadása";
-            document.getElementById("fillOutText").style.display = "block";
-            textEditor(taskDataHolder, "", "100px");
-
-            var imageInput = document.createElement("input");
-            imageInput.classList.add("form-control", "mb-2");
-            imageInput.id = "imageLink";
-            imageInput.placeholder = "Kép URL...";
-            taskDataHolder.appendChild(imageInput);
-
-            var uploadDiv = document.createElement("div");
-            uploadDiv.classList.add("input-group");
-
-            var uploadImage = document.createElement("input");
-            uploadImage.type = "file";
-            uploadImage.classList.add("form-control");
-            uploadImage.placeholder = "Kép feltöltése";
-            uploadImage.name = "fileToUpload";
-            uploadImage.id = "imageUpload";
-            uploadImage.accept = "image/*";
-            uploadDiv.appendChild(uploadImage);
-
-            var resetButton = document.createElement("button");
-            resetButton.classList.add("btn", "btn-outline-danger");
-            resetButton.type = "button";
-            resetButton.innerHTML = "Törlés";
-            resetButton.onclick = function () {
-                deleteImage(TaskId);
-            }
-            uploadDiv.appendChild(resetButton);
-
-            taskDataHolder.appendChild(uploadDiv);
-            break;
-
-        case "file":
-            modalTitle.innerHTML = "Új fájl hozzáadása";
-
-            textEditor(taskDataHolder, "", "100px");
-
-            var uploadDiv = document.createElement("div");
-            uploadDiv.classList.add("input-group");
-
-            var uploadFile = document.createElement("input");
-            uploadFile.type = "file";
-            uploadFile.classList.add("form-control");
-            uploadFile.placeholder = "Fájl feltöltése";
-            uploadFile.name = "fileToUpload";
-            uploadFile.id = "fileUpload";
-            uploadFile.accept = "*";
-            uploadDiv.appendChild(uploadFile);
-
-            var resetButton = document.createElement("button");
-            resetButton.classList.add("btn", "btn-outline-danger");
-            resetButton.type = "button";
-            resetButton.innerHTML = "Törlés";
-            resetButton.onclick = function () {
-                deleteFile(TaskId);
-            }
-            uploadDiv.appendChild(resetButton);
-
-            taskDataHolder.appendChild(uploadDiv);
+            taskBodyGenerator(projectID, null, taskDataHolder);
             break;
 
         case "checklist":
         case "radio":
             modalTitle.innerHTML = `Új lista hozzáadása (${taskType})`;
-            generateNewCheckOrRadioEditor(taskDataHolder, taskType);
-            document.getElementById('taskSubmittable').classList.add('active');
+            generateCheckOrRadioEditor(taskDataHolder, taskType);
             break;
     }
 
@@ -613,7 +569,6 @@ async function addNewTask(projectID, taskType, deadline = null) {
     let taskMembersHolder = document.getElementById("taskMembers");
     taskMembersHolder.innerHTML = "";
 
-    console.log(taskMembers);
     taskMembers.forEach(member => {
         let option = document.createElement("div");
         option.classList.add("availableMember");
@@ -633,24 +588,32 @@ async function addNewTask(projectID, taskType, deadline = null) {
     }
 
 
+    await submissionSettings(taskType);
+
+
     // Hide delete button if shown
     let deleteButton = document.getElementById("deleteTask");
     deleteButton.style.display = "none";
 
+    // Add save button
+    let saveButton = document.getElementById("saveNewTask");
+
+    // Enable the button and remove the previous event listener
+    saveButton.disabled = false;
+    try {
+        saveButton.removeEventListener('click', saveButtonHandler);
+    } catch (error) {
+        console.log("No event listener to remove");
+    }
+    // Create a new event handler with the current TaskId, taskType, and projectID
+    saveButtonHandler = createSaveButtonHandler(null, taskType, projectID);
+
+    // Add the new event listener
+    saveButton.addEventListener('click', saveButtonHandler);
+
     // Display task editor modal
     $('#taskEditorModal').modal('show');
-
-    // Get the save button
-    let saveButton = document.getElementById('saveNewTask');
-
-    // Add a click event listener to the button
-    saveButton.addEventListener('click', async function () {
-        saveTaskSettings(null, taskType, projectID);
-        this.disabled = true;
-    });
-
 }
-
 
 
 async function saveTaskSettings(task_id, taskType, projectID = null) {
@@ -669,21 +632,17 @@ async function saveTaskSettings(task_id, taskType, projectID = null) {
     let taskDataHolder = document.getElementById("taskData");
 
     // Check if the task is interactable
-    let isSubmittable = document.getElementById("taskSubmittable").classList.contains("active") ? 1 : 0;
+    let isInteractable = document.getElementById("taskInteractable").checked ? 1 : 0;
 
     // Check if the task is single answer
-    let singleAnswer = document.getElementById("singleAnswer").classList.contains("active") ? 1 : 0;
+    let singleAnswer = document.getElementById("singleAnswer").checked ? 1 : 0;
 
     let imageToUpload = null;
     let fillOutText = null;
     let taskData;
 
     switch (taskType) {
-        case "text":
-            taskData = taskDataHolder.querySelector("#textTaskData").value;
-            fillOutText = document.getElementById('fillOutText').value;
-            break;
-        case "image":
+        case "task":
             fillOutText = document.getElementById('fillOutText').value;
             var caption = taskDataHolder.querySelector("#textTaskData").value;
             let imageLink = taskDataHolder.querySelector("#imageLink").value;
@@ -691,9 +650,20 @@ async function saveTaskSettings(task_id, taskType, projectID = null) {
             if (uploadImage) {
                 imageToUpload = uploadImage;
             }
+
+            let files = Array.from(document.getElementById("taskFiles").childNodes);
+            let fileArray = files.map(file => {
+                return {
+                    name: file.innerText,
+                    link: file.getAttribute("data-link"),
+                    path: file.getAttribute("data-path"),
+                };
+            });
+
             taskData = {
                 text: caption,
-                image: imageLink
+                image: imageLink,
+                files: fileArray,
             }
             break;
         case "checklist":
@@ -703,7 +673,7 @@ async function saveTaskSettings(task_id, taskType, projectID = null) {
             let itemData = Array.from(items).map((item, i) => ({
                 pos: i,
                 value: item.value,
-                checked: false,
+                checked: item.parentElement.querySelector(".form-check-input").checked,
             }));
             taskData = {
                 text: caption,
@@ -721,7 +691,7 @@ async function saveTaskSettings(task_id, taskType, projectID = null) {
         "Task_type": taskType,
         "Task_title": taskName,
         "Task_data": taskData,
-        "isSubmittable": isSubmittable,
+        "isInteractable": isInteractable,
         "fillOutText": fillOutText,
         "singleAnswer": singleAnswer,
         "Deadline": taskDeadline
@@ -740,7 +710,7 @@ async function saveTaskSettings(task_id, taskType, projectID = null) {
         }
     } catch (error) {
         console.error(`Error: ${error}`);
-        errorToast();
+        serverErrorToast();
     }
 
 
@@ -792,10 +762,9 @@ async function submitTask(taskId, taskType) {
     let taskData = [];
 
     switch (taskType) {
-        case "text":
-        case "image":
+        case "task":
             let done = document.getElementById("fillOutCheckbox").checked;
-            taskData = done ? ['done'] : null;
+            taskData = done ? ['done'] : ['reverted'];
             break;
         case "checklist":
         case "radio":
@@ -841,7 +810,10 @@ function colorTaskCard(taskHeader, deadline) {
     let currentDate = new Date();
     let taskDeadline = new Date(deadline);
 
-    if (taskDeadline < currentDate) {
+    // If task is overdue more than a week, return
+    if (currentDate - taskDeadline > (1000 * 60 * 60 * 24 * 7)) {
+        return;
+    } else if (taskDeadline < currentDate) {
         taskHeader.classList.add("bg-danger", "text-white");
     } else if (taskDeadline - currentDate < (1000 * 60 * 60 * 48)) {
         taskHeader.classList.add("bg-warning");
@@ -875,16 +847,16 @@ function makeFormatting(taskData) {
 
 }
 
-function textEditor(taskDataHolder, taskData = "", height = "250px") {
+function textEditor(taskDataHolder, taskData = "", height = "250px", inputAreaId = "textTaskData") {
     let textFormatOptions = document.createElement("div");
     textFormatOptions.classList.add("btn-group", "mb-1");
 
     let boldButton = document.createElement("button");
-    boldButton.classList.add("btn");
+    boldButton.classList.add("btn", "btn-");
     boldButton.innerHTML = "<b>B</b>";
     boldButton.onclick = function () {
         // Assume textarea is the textarea or input element where you want to bold the text
-        var textarea = document.getElementById('textTaskData');
+        var textarea = document.getElementById(inputAreaId);
 
         // Get the current selection
         var start = textarea.selectionStart;
@@ -914,7 +886,7 @@ function textEditor(taskDataHolder, taskData = "", height = "250px") {
     italicButton.classList.add("btn");
     italicButton.innerHTML = "<i>I</i>";
     italicButton.onclick = function () {
-        var textarea = document.getElementById('textTaskData');
+        var textarea = document.getElementById(inputAreaId);
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
 
@@ -936,7 +908,7 @@ function textEditor(taskDataHolder, taskData = "", height = "250px") {
     underlineButton.classList.add("btn");
     underlineButton.innerHTML = "<u>U</u>";
     underlineButton.onclick = function () {
-        var textarea = document.getElementById('textTaskData');
+        var textarea = document.getElementById(inputAreaId);
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
 
@@ -958,7 +930,7 @@ function textEditor(taskDataHolder, taskData = "", height = "250px") {
     linkButton.classList.add("btn");
     linkButton.innerHTML = "<a href='#'>Link</a>";
     linkButton.onclick = function () {
-        var textarea = document.getElementById('textTaskData');
+        var textarea = document.getElementById(inputAreaId);
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
 
@@ -995,83 +967,306 @@ function textEditor(taskDataHolder, taskData = "", height = "250px") {
         event.preventDefault();
     });
 
-    taskDataHolder.appendChild(textFormatOptions);
+    if (inputAreaId == "textTaskData") {
+        taskDataHolder.appendChild(textFormatOptions);
+    } else if (inputAreaId == "projectDescription") {
+        let editorButtonsDiv = document.getElementById("textEditorButtons");
+        editorButtonsDiv.innerHTML = "";
+        editorButtonsDiv.appendChild(textFormatOptions);
+    }
+
+    function decodeHtml(html) {
+        var txt = document.createElement("textarea");
+        txt.innerHTML = html;
+        return txt.value;
+    }
 
     let textArea = document.createElement("textarea");
-    textArea.classList.add("form-control", "mb-2");
-    textArea.id = "textTaskData";
-    textArea.value = taskData;
+    textArea.classList.add("form-control");
+    inputAreaId == "textTaskData" ? textArea.classList.add("mb-2") : null;
+    textArea.id = inputAreaId;
+    textArea.value = decodeHtml(taskData);
     textArea.placeholder = "Szöveg...";
     textArea.style.height = height;
 
     taskDataHolder.appendChild(textArea);
 }
 
-function generateNewCheckOrRadioEditor(taskDataHolder, type) {
-    taskDataHolder.innerHTML = "";
+function taskBodyGenerator(projectID, TaskId, taskDataHolder, taskData = null, projectRoot = "/Munka") {
+    taskData = taskData ? JSON.parse(taskData) : null;
 
-    textEditor(taskDataHolder, "", "100px");
+    textEditor(taskDataHolder, taskData ? taskData.text : "", "150px");
 
-    let label = document.createElement("label");
-    label.classList.add("form-label");
-    label.innerHTML = "Elemek:";
-    taskDataHolder.appendChild(label);
+    const pictureDiv = document.createElement("div");
+    pictureDiv.classList.add("input-group");
 
-    let checklist = document.createElement("ul");
-    checklist.classList.add("list-group", "list-group-flush");
-    checklist.id = type;
+    let label = document.createElement("span");
+    label.classList.add("input-group-text");
+    label.innerHTML = "Kép:";
+    pictureDiv.appendChild(label);
 
-    let checklistItem = document.createElement("li");
-    checklistItem.classList.add("list-group-item");
-    checklistItem.innerHTML = "<input type='text' class='form-control " + type + "Item' placeholder='Új elem'>";
-    checklist.appendChild(checklistItem);
-
-    let newChecklistItem = document.createElement("button");
-    newChecklistItem.classList.add("btn", "btn-success", "btn-sm");
-    newChecklistItem.innerHTML = "Új elem";
-    newChecklistItem.onclick = function () {
-        let checklist = document.getElementById(type);
-        let checklistItem = document.createElement("li");
-        checklistItem.classList.add("list-group-item");
-        checklistItem.innerHTML = "<input type='text' class='form-control " + type + "Item' placeholder='Új elem'>";
-        checklist.appendChild(checklistItem);
+    const imageInput = document.createElement("input");
+    imageInput.classList.add("form-control");
+    imageInput.id = "imageLink";
+    if (taskData) {
+        imageInput.value = taskData.image;
     }
+    imageInput.placeholder = "Kép URL...";
+    pictureDiv.appendChild(imageInput);
 
-    // Prevent form submission
-    newChecklistItem.addEventListener('click', function (event) {
+    const pasteFromClipboard = document.createElement("button");
+    pasteFromClipboard.classList.add("btn", "btn-outline-secondary");
+    pasteFromClipboard.innerHTML = `<i class="fas fa-paste"></i>`;
+    pasteFromClipboard.onclick = function (event) {
         event.preventDefault();
+        navigator.clipboard.read().then(items => {
+            items.forEach(item => {
+                for (let type of item.types) {
+                    if (type.startsWith('image/')) {
+                        item.getType(type).then(blob => {
+                            let file = new File([blob], "ClipboardImage.png", { type: blob.type });
+                            let fileInput = document.getElementById('imageUpload');
+                            let dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            fileInput.files = dataTransfer.files;
+                            imageInput.value = 'Kép beillesztve!';
+                        });
+                    }
+                }
+            });
+        });
+    }
+    pictureDiv.appendChild(pasteFromClipboard);
+
+    const uploadImage = document.createElement("input");
+    uploadImage.type = "file";
+    uploadImage.style.display = "none"; // Hide the file input
+    uploadImage.accept = "image/*";
+    uploadImage.name = "fileToUpload";
+    uploadImage.id = "imageUpload";
+
+    // Add an onchange event listener to the file input
+    uploadImage.addEventListener("change", function () {
+        if (this.files && this.files[0]) {
+            imageInput.value = this.files[0].name;
+        }
     });
 
-    taskDataHolder.appendChild(checklist);
-    taskDataHolder.appendChild(newChecklistItem);
+    const uploadButton = document.createElement("button");
+    uploadButton.type = "button";
+    uploadButton.classList.add("btn", "btn-outline-success");
+    uploadButton.innerHTML = `<i class="fas fa-folder-open"></i>`;
+
+    // Trigger the file input when the button is clicked
+    uploadButton.addEventListener("click", function () {
+        uploadImage.click();
+    });
+
+    pictureDiv.appendChild(uploadImage);
+    pictureDiv.appendChild(uploadButton);
+
+    const resetButton = document.createElement("button");
+    resetButton.classList.add("btn", "btn-outline-danger");
+    resetButton.type = "button";
+    resetButton.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+    if (TaskId == null) {
+        resetButton.disabled = true;
+    }
+    resetButton.onclick = function () {
+        deleteImage(TaskId);
+    }
+    pictureDiv.appendChild(resetButton);
+
+    taskDataHolder.appendChild(pictureDiv);
+
+    // Create file linker from NAS
+
+    const filediv = document.getElementById("taskFileManager");
+    filediv.style.display = "flex";
+
+    const fileHolder = document.getElementById("taskFiles");
+    fileHolder.innerHTML = "";
+
+    if (taskData && taskData.files != '') {
+
+        taskData.files.forEach(file => {
+            let fileDiv = document.createElement("div");
+            fileDiv.classList.add("fileElement");
+            fileDiv.innerHTML = `<i class="fas fa-file"></i> ${file.name}`;
+            fileDiv.setAttribute("data-link", file.link);
+            fileDiv.setAttribute("data-path", file.path);
+
+            let deleteButton = document.createElement("button");
+            deleteButton.classList.add("btn", "btn-danger", "btn-sm", "float-end");
+            deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteButton.style.marginLeft = "5px";
+            deleteButton.onclick = function (event) {
+                event.preventDefault();
+                this.parentElement.remove();
+            }
+
+            fileDiv.appendChild(deleteButton);
+            fileHolder.appendChild(fileDiv);
+        });
+    }
+
+    const openBrowserButton = document.getElementById("browseProjectFiles");
+
+    try {
+        openBrowserButton.removeEventListener('click', browserButtonHandler);
+    } catch (error) {
+        ;
+    }
+    // Create a new event handler with the current TaskId, taskType, and projectID
+    browserButtonHandler = createFileBrowserButtonHandler(projectID, TaskId, projectRoot);
+
+    // Add the new event listener
+    openBrowserButton.addEventListener('click', browserButtonHandler);
+}
+
+// Define the event handler function outside of the settings function
+function createFileBrowserButtonHandler(projectID, TaskId, projectRoot) {
+    return async function browserButtonHandler(e) {
+        e.preventDefault();
+        browseNASFolder(projectID, TaskId, "selectFiles", projectRoot);
+    };
+}
+
+async function submissionSettings(taskType, task = null) {
+
+    const submissionSettings = document.getElementById("submissionSettings");
+    submissionSettings.innerHTML = "";
+
+    let label = document.createElement("span");
+    label.classList.add("input-group-text");
+    label.innerHTML = "Leadás:";
+    submissionSettings.appendChild(label);
+
+    if (taskType == "task") {
+        let fillOutText = document.createElement("textarea");
+        fillOutText.classList.add("form-control");
+        fillOutText.id = "fillOutText";
+        fillOutText.style.height = "70px";
+        fillOutText.placeholder = "Megerősítés szövege";
+        fillOutText.value = task ? task.fillOutText : "";
+        submissionSettings.appendChild(fillOutText);
+    }
+
+    let submitButton = document.createElement("input");
+    submitButton.type = "checkbox";
+    submitButton.classList.add("btn-check");
+    submitButton.id = "taskInteractable";
+    submitButton.checked = task ? task.isInteractable == 1 : false;
+    submitButton.autocomplete = "off";
+    submissionSettings.appendChild(submitButton);
+
+    let submitLabel = document.createElement("label");
+    submitLabel.classList.add("btn", "btn-outline-success", 'd-flex', 'align-items-center');
+    submitLabel.htmlFor = "taskInteractable";
+    submitLabel.innerHTML = `<i class="fas fa-user-check"></i>`;
+    submissionSettings.appendChild(submitLabel);
+
+    let singleAnswerButton = document.createElement("input");
+    singleAnswerButton.type = "checkbox";
+    singleAnswerButton.classList.add("btn-check");
+    singleAnswerButton.id = "singleAnswer";
+    singleAnswerButton.checked = task ? task.SingleAnswer == 1 : false;
+    singleAnswerButton.autocomplete = "off";
+    submissionSettings.appendChild(singleAnswerButton);
+
+    let singleAnswerLabel = document.createElement("label");
+    singleAnswerLabel.classList.add("btn", "btn-outline-danger", 'd-flex', 'align-items-center');
+    singleAnswerLabel.htmlFor = "singleAnswer";
+    singleAnswerLabel.innerHTML = `<i class="fas fa-check"></i>`;
+    submissionSettings.appendChild(singleAnswerLabel);
 }
 
 
-function generateCheckOrRadioEditor(taskDataHolder, taskData, type) {
-    taskData = JSON.parse(taskData);
+function generateCheckOrRadioEditor(taskDataHolder, type, taskData = null) {
+    taskData = taskData ? JSON.parse(taskData) : { text: "", checklist: [{ value: "", checked: false }] };
     var checklistItems = taskData.checklist;
     // Adding text before the checklist
     textEditor(taskDataHolder, taskData.text, '100px');
 
-    let checklist = document.createElement("ul");
-    checklist.classList.add("list-group", "list-group-flush");
+    let checklist = document.createElement("div");
+    //checklist.classList.add("input-group");
     checklist.id = type;
 
-    for (let i = 0; i < checklistItems.length; i++) {
-        let checklistItem = document.createElement("li");
-        checklistItem.classList.add("list-group-item");
-        checklistItem.innerHTML = "<input type='text' class='form-control " + type + "Item' value='" + checklistItems[i].value + "'>";
+    checklistItems.forEach(item => {
+        let checklistItem = document.createElement("div");
+        checklistItem.classList.add("input-group", "mb-2");
+
+        let div = document.createElement("div");
+        div.classList.add("input-group-text");
+        checklistItem.appendChild(div);
+
+        let checkBOX = document.createElement("input");
+        checkBOX.classList.add("form-check-input");
+        checkBOX.type = type == "checklist" ? "checkbox" : "radio";
+        checkBOX.checked = item.checked;
+        checkBOX.disabled = true;
+        div.appendChild(checkBOX);
+
+
+        let input = document.createElement("input");
+        input.classList.add("form-control", type + "Item");
+        input.value = item.value;
+        input.placeholder = "Új elem";
+        checklistItem.appendChild(input);
+
+        let deleteButton = document.createElement("button");
+        deleteButton.classList.add("btn", "btn-danger");
+        deleteButton.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+        deleteButton.disabled = checklistItems.indexOf(item) == 0 ? true : false;  // The first item should not be deleted
+        deleteButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            // If only one item is left return
+            if (this.parentElement.parentElement.childElementCount == 1) {
+                errorToast("Legalább egy elemnek kell lennie!");
+            } else {
+                checklistItem.remove();
+            }
+        });
+        checklistItem.appendChild(deleteButton);
         checklist.appendChild(checklistItem);
-    }
+    });
 
     let newChecklistItem = document.createElement("button");
     newChecklistItem.classList.add("btn", "btn-success", "btn-sm");
     newChecklistItem.innerHTML = "Új elem";
     newChecklistItem.onclick = function () {
-        let checklist = document.getElementById(type);
-        let checklistItem = document.createElement("li");
-        checklistItem.classList.add("list-group-item");
-        checklistItem.innerHTML = "<input type='text' class='form-control " + type + "Item' placeholder='Új elem'>";
+        let checklistItem = document.createElement("div");
+        checklistItem.classList.add("input-group", "mb-2");
+
+        let div = document.createElement("div");
+        div.classList.add("input-group-text");
+        checklistItem.appendChild(div);
+
+        let checkBOX = document.createElement("input");
+        checkBOX.classList.add("form-check-input");
+        checkBOX.type = type == "checklist" ? "checkbox" : "radio";
+        checkBOX.disabled = true;
+        div.appendChild(checkBOX);
+
+
+        let input = document.createElement("input");
+        input.classList.add("form-control", type + "Item");
+        input.placeholder = "Új elem";
+        checklistItem.appendChild(input);
+
+        let deleteButton = document.createElement("button");
+        deleteButton.classList.add("btn", "btn-danger");
+        deleteButton.innerHTML = `<i class="fas fa-trash-alt"></i>`;
+        deleteButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            // If only one item is left return
+            if (this.parentElement.parentElement.childElementCount == 1) {
+                errorToast("Legalább egy elemnek kell lennie!");
+            } else {
+                checklistItem.remove();
+            }
+        });
+        checklistItem.appendChild(deleteButton);
         checklist.appendChild(checklistItem);
     }
 
@@ -1082,7 +1277,6 @@ function generateCheckOrRadioEditor(taskDataHolder, taskData, type) {
 
     taskDataHolder.appendChild(checklist);
     taskDataHolder.appendChild(newChecklistItem);
-
 }
 
 
@@ -1128,11 +1322,12 @@ async function cardCheckOrRadio(taskBody, task, type) {
         } else {
             input.type = "radio";
         }
-        input.disabled = task.isSubmittable == 0 ? false : true;
-        input.id = checklistItems[i].pos;
+        input.disabled = task.isInteractable == 0 ? false : true;
+        input.id = checklistItems[i].pos + "-" + task.ID;
 
-        if (task.isSubmittable == 0) {
+        if (task.isInteractable == 0) {
             input.checked = checklistItems[i].checked;
+            input.name = type + "-" + task.ID;
             input.onclick = function () {
                 saveCheckOrRadio(task.ID);
             }
@@ -1141,7 +1336,7 @@ async function cardCheckOrRadio(taskBody, task, type) {
         checklistItem.appendChild(input);
 
         var selectedCount = 0;
-        if (task.isSubmittable == 1) {
+        if (task.isInteractable == 1) {
             for (let j = 0; j < UIData.length; j++) {
                 if (UIData[j].length <= i) {
                     continue;
@@ -1153,8 +1348,8 @@ async function cardCheckOrRadio(taskBody, task, type) {
         }
         let label = document.createElement("label");
         label.classList.add("form-check-label");
-        label.htmlFor = checklistItems[i].pos;
-        if (task.isSubmittable == 1) {
+        label.htmlFor = checklistItems[i].pos + "-" + task.ID;
+        if (task.isInteractable == 1) {
             label.innerHTML = checklistItems[i].value + " (" + selectedCount + ")";
         } else {
             label.innerHTML = checklistItems[i].value;
@@ -1276,6 +1471,10 @@ async function deleteImage(taskId) {
             console.log(data);
             if (data == 200) {
                 simpleToast("Kép törölve");
+            } else if (data == 404) {
+                errorToast("Nincs feltöltött kép");
+            } else {
+                serverErrorToast();
             }
         }
     });

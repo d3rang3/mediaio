@@ -1,9 +1,16 @@
 <!-- Default header  -->
 
+<?php
+if (!isset($_SESSION["userId"])) {
+   echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
+   exit();
+}
+?>
+<html>
+
 <head>
   <link href='../style/common.scss' rel='stylesheet' />
   <link rel="icon" type="image/x-icon" href="../logo.ico">
-  <div class="UI_loading"><img class="loadingAnimation" src="../utility/mediaIO_loading_logo.gif"></div>
   <meta charset='utf-8' />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -24,7 +31,8 @@
   <script src="frontEnd/fetchData.js" crossorigin="anonymous"></script>
   <script src="frontEnd/taskAnswers.js" crossorigin="anonymous"></script>
   <script src="frontEnd/dragAndDrop.js" crossorigin="anonymous" defer></script>
-  <script src="frontEnd/toastManager.js" crossorigin="anonymous" defer></script>
+  <script src="../utility/toastManager.js" crossorigin="anonymous" defer></script>
+  <script src="frontEnd/nasCommunication.js" crossorigin="anonymous" defer></script>
 
 
   <?php if (in_array("admin", $_SESSION["groups"])) { ?>
@@ -32,13 +40,14 @@
   <?php } ?>
 
   <link rel="stylesheet" href="style/projectMStyle.scss">
-
-  <script>
-    $(window).on('load', function () {
-      console.log("Finishing UI");
-      setInterval(() => {
-        $(".UI_loading").fadeOut("slow");
-      }, 200);
-    });
-  </script>
 </head>
+
+<div class="UI_loading"><img class="loadingAnimation" src="../utility/mediaIO_loading_logo.gif"></div>
+<script>
+  $(window).on('load', function () {
+    console.log("Finishing UI");
+    setInterval(() => {
+      $(".UI_loading").fadeOut("slow");
+    }, 200);
+  });
+</script>

@@ -59,18 +59,18 @@ function showTable() {
     setButtonClass("table");
 
     //Set doboz max-width
-    var doboz = document.getElementById("doboz");
+    const doboz = document.getElementById("doboz");
     doboz.style.maxWidth = "1200px";
 
     //Empty table
-    var headerHolder = document.getElementById("headerHolder");
+    const headerHolder = document.getElementById("headerHolder");
     headerHolder.innerHTML = "";
 
-    var answerHolder = document.getElementById("answerHolder");
+    const answerHolder = document.getElementById("answerHolder");
     answerHolder.innerHTML = "";
 
     // Set form invisible
-    var formContainer = document.getElementById("form-body");
+    const formContainer = document.getElementById("form-body");
     formContainer.style.display = "none";
 
     // Generate table header
@@ -95,82 +95,77 @@ function showTable() {
     // Generate table body
 
     function createRow(formAnswers, formElements) {
-        var tr = document.createElement("tr");
+        const tr = document.createElement("tr");
 
         var idTd = document.createElement("td");
         idTd.innerHTML = formAnswers.ID;
         tr.appendChild(idTd);
 
+        const formAnswersData = JSON.parse(formAnswers.UserAnswers);
+
         // Create cells
         for (var j = 0; j < formElements.length; j++) {
             var td = document.createElement("td");
-            var elementAnswer = getElementAnswer(formElements[j], JSON.parse(formAnswers.UserAnswers));
+            var elementAnswer = getElementAnswer(formElements[j], formAnswersData);
             td.innerHTML = elementAnswer;
             tr.appendChild(td);
         }
+
+        const deleteAnswerButton = document.createElement("button");
+        deleteAnswerButton.innerHTML = `<i class="fas fa-trash"></i>`;
+        deleteAnswerButton.className = "btn btn-danger";
+        deleteAnswerButton.onclick = function () {
+            deleteAnswer(formAnswers.ID);
+        }
+        tr.appendChild(deleteAnswerButton);
         return tr;
     }
 
     function getElementAnswer(element, AnswerData) {
-        var elementType = element.type;
-        var elementId = element.id;
-        var elementAnswer;
+        const elementType = element.type;
+        const elementId = element.id;
+        let elementAnswer;
 
-        for (var k = 0; k < AnswerData.length; k++) {
-            if (AnswerData[k].id == (elementType + "-" + elementId)) {
-                if (elementType == "checkbox" || elementType == "radio") {
-                    //elementAnswer = getCheckedAnswer(AnswerData[k].value);
-                    if (elementAnswer == undefined) {
-                        elementAnswer = "<i>In development</i>";
-                    }
-                } else if (elementType == "scaleGrid") {
-                    elementAnswer = getScaleGridAnswer(AnswerData[k].value);
-                }
-                else {
-                    console.log(AnswerData[k].value);
-                    elementAnswer = AnswerData[k].value;
-                }
+        const answerData = AnswerData.find(data => data.id === `${elementType}-${elementId}`);
+
+        if (answerData) {
+            switch (elementType) {
+                case 'checkbox':
+                case 'radio':
+                    console.log(answerData);
+                    elementAnswer = getCheckedAnswer(answerData.value) || '<i>In development</i>';
+                    break;
+                case 'scaleGrid':
+                    elementAnswer = getScaleGridAnswer(answerData.value);
+                    break;
+                default:
+                    elementAnswer = answerData.value !== '' ? answerData.value : '<i>Nem megválaszolt</i>';
             }
         }
-        return elementAnswer;
+
+        return elementAnswer || '<i>Nem megválaszolt</i>';
     }
 
     function getScaleGridAnswer(submission) {
-        var answer = "";
+        let answer = "";
 
         function getGrade(sub) {
-            var grade = 0;
-            for (var j = 0; j < sub.answers.length; j++) {
-                if (sub.answers[j] == 1) {
-                    grade = j + 1;
-                }
-            }
-            return grade;
+            const gradeIndex = sub.answers.findIndex(answer => answer === 1);
+            return gradeIndex >= 0 ? gradeIndex + 1 : 0;
         }
 
-        for (var i = 0; i < submission.length; i++) {
-            answer += submission[i].label + ": " + getGrade(submission[i]) + "<br>";
+        for (let i = 0; i < submission.length; i++) {
+            answer += `${submission[i].label}: ${getGrade(submission[i])}<br>`;
         }
         return answer;
     }
 
     function getCheckedAnswer(value) {
-        var answer = JSON.parse(value);
-        console.log(answer);
-        var elementAnswer;
+        const checkedAnswers = value
+            .filter(answer => Boolean(Number(answer.split(":")[1])))
+            .map(answer => answer.split(":")[0]);
 
-        for (var l = 0; l < answer.length; l++) {
-            var answerOption = answer[l].split(":")[0];
-            var checked = Boolean(Number(answer[l].split(":")[1]));
-            if (checked) {
-                if (elementAnswer == undefined) {
-                    elementAnswer = answerOption;
-                } else {
-                    elementAnswer = elementAnswer + ", " + answerOption;
-                }
-            }
-        }
-        return elementAnswer;
+        return checkedAnswers.join(", ");
     }
 
     for (var i = 0; i < formAnswers.length; i++) {
@@ -182,4 +177,25 @@ function showTable() {
     var table = document.getElementById("answersTable");
     table.style.display = "table";
 
+}
+
+
+async function deleteAnswer(id) {
+    console.log("Deleting answer: " + id);
+
+    const response = await $.ajax({
+        url: "../formManager.php",
+        type: "POST",
+        data: {
+            mode: "deleteAnswer",
+            id: id
+        }
+    });
+
+    if (response == 200) {
+        alert("Válasz törölve");
+        showTable();
+    } else {
+        alert("Hiba történt a válasz törlése közben");
+    }
 }

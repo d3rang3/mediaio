@@ -494,60 +494,66 @@ function listDropdown(value, optionNum, state) {
 
 //Function to generate a checkbox or radio element
 function listCheckOpt(type, id, settings, optionNum, state, answer = "") {
-    //Create div for checkbox or radio
-    var div = document.createElement("div");
-    div.classList.add("form-check");
+    //Create div for checkbox or radio  
+    const div = document.createElement("div");
+    div.classList.add(state == "editor" ? "input-group" : "form-check");
+    state == "editor" ? div.classList.add("mb-2") : div.classList.add("mb-1");
     div.setAttribute('data-option', optionNum);
 
-    //Create input for checkbox or radio
-    var input = document.createElement("input");
-    input.type = type;
-    input.classList.add("form-check-input");
-    if (state == "editor") {
-        input.disabled = true;
-    } else if (state == "fill" || state == "answer") {
+    if (state === "editor") {
+        const CheckHolderDiv = document.createElement("div");
+        CheckHolderDiv.classList.add("input-group-text");
+        CheckHolderDiv.innerHTML = `<input class="form-check-input" type="${type}" id="${id}" data-name="${settings}" disabled>`;
+        div.appendChild(CheckHolderDiv);
+    }
+
+    if (state === "fill" || state === "answer") {
+        // Create input for checkbox or radio
+        const input = document.createElement("input");
+        input.type = type;
+        input.classList.add("form-check-input");
         input.classList.add("userInput");
-        if (input.type == "radio") {
+        if (input.type === "radio") {
             input.name = "flexRadioDefault";
         }
-        if (state == "answer") {
+        if (state === "answer") {
             input.disabled = true;
-            if (answer == 1) {
+            if (answer === 1) {
                 input.checked = true;
             }
         }
+        input.setAttribute('data-name', settings);
+        input.id = id;
+        div.appendChild(input);
     }
-    input.id = id;
-    div.appendChild(input);
 
-    input.setAttribute('data-name', settings);
-
-    //Create label for checkbox or radio
-    if (state == "editor") {
-        var label = document.createElement("input");
+    let label;
+    if (state === "editor") {
+        label = document.createElement("input");
         label.type = "text";
         label.classList.add("form-control");
+        label.style.marginBottom = "0";
         label.placeholder = "Opció";
         label.value = settings;
         div.appendChild(label);
-    }
-    else if (state == "fill" || state == "answer") {
-        //Create label
-        var label = document.createElement("label");
-        label.classList.add("form-check-label");
-        label.for = id;
-        label.innerHTML = settings;
-        div.appendChild(label);
-    }
 
-    if (state == "editor") {
-        //Create delete button
-        var deleteButton = document.createElement("button");
+        const deleteHolder = document.createElement("div");
+        deleteHolder.classList.add("input-group-text");
+
+        // Create delete button
+        const deleteButton = document.createElement("button");
         deleteButton.classList.add("btn", "btn-close", "btn-sm");
         deleteButton.onclick = function () {
             div.remove();
         };
-        div.appendChild(deleteButton);
+        deleteHolder.appendChild(deleteButton);
+        div.appendChild(deleteHolder);
+    } else if (state === "fill" || state === "answer") {
+        label = document.createElement("label");
+        label.classList.add("form-check-label");
+        label.htmlFor = id;
+        label.textContent = settings;
+        div.appendChild(label);
     }
     return div;
 }

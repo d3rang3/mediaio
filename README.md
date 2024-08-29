@@ -73,8 +73,8 @@ A szerveroldali szkriptek az io `server/dbCredentials.json` fájlból olvassák 
 {
   "username": "IO_username",
   "password": "IO_password",
-  "schema": "arpadmedia",
-  "NAS_domain": "nas.arpadmedia.hu",
+  "schema": "databaseName",
+  "NAS_domain": "domain.com",
   "NAS_username": "APIUserName",
   "NAS_password": "APIPASS"
 }

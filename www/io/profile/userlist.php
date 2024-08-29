@@ -1,13 +1,6 @@
 <?php
-use Mediaio\Core;
-use Mediaio\Database;
-use Mediaio\MailService;
 
-// require __DIR__ . '/../vendor/autoload.php'; ---> CSAK AZÉRT VAN KOMMENTELVE MERT NÁLAM ENÉLKÜL MŰKÖDIK
-require_once __DIR__ . '/../Core.php';
-require_once __DIR__ . '/../Database.php';
-require_once __DIR__ . '/../Mailer.php';
-include ("header.php");
+use Mediaio\Database;
 
 //Suppresses error messages
 error_reporting(E_ERROR | E_PARSE);
@@ -16,83 +9,138 @@ session_start();
 if (!isset($_SESSION["userId"])) {
   echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
   exit();
-} 
+}
+
+include ("header.php");
 ?>
 
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-</head>
-<title>Elérhetőségek</title>
 
+<body>
+  <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="index.php">
+      <img src="../utility/logo2.png" height="50">
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto navbarUl">
+        <script>
+          $(document).ready(function () {
+            menuItems = importItem("../utility/menuitems.json");
+            drawMenuItemsLeft('profile', menuItems, 2);
+          });
+        </script>
+      </ul>
+      <ul class="navbar-nav ms-auto navbarPhP">
+        <li>
+          <a class="nav-link disabled timelock" href="#"><span id="time"> 10:00 </span>
+            <?php echo ' ' . $_SESSION['UserUserName']; ?>
+          </a>
+        </li>
+      </ul>
+      <form method='post' class="form-inline my-2 my-lg-0" action=../utility/userLogging.php>
+        <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
+          type="submit">Kijelentkezés</button>
+        <script type="text/javascript">
+          window.onload = function () {
+            display = document.querySelector('#time');
+            var timeUpLoc = "../utility/userLogging.php?logout-submit=y"
+            startTimer(display, timeUpLoc);
+          };
+        </script>
+      </form>
+    </div>
+  </nav>
 
-<nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
-  <a class="navbar-brand" href="index.php">
-    <img src="../utility/logo2.png" height="50">
-  </a>
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarSupportedContent">
-    <ul class="navbar-nav mr-auto navbarUl">
-      <script>
-        $(document).ready(function () {
-          menuItems = importItem("../utility/menuitems.json");
-          drawMenuItemsLeft('profile', menuItems, 2);
-        });
-      </script>
-    </ul>
-    <ul class="navbar-nav ms-auto navbarPhP">
-      <li>
-        <a class="nav-link disabled timelock" href="#"><span id="time"> 10:00 </span>
-          <?php echo ' ' . $_SESSION['UserUserName']; ?>
-        </a>
-      </li>
-    </ul>
-    <form method='post' class="form-inline my-2 my-lg-0" action=../utility/userLogging.php>
-      <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
-        type="submit">Kijelentkezés</button>
-      <script type="text/javascript">
-        window.onload = function () {
-          display = document.querySelector('#time');
-          var timeUpLoc = "../utility/userLogging.php?logout-submit=y"
-          startTimer(display, timeUpLoc);
-        };
-      </script>
-    </form>
+  <h2 class="rainbow">Elérhetőségek</h2>
+
+  <div class="container">
+    <div class="statsTable" id="tableContainer">
+
+    </div>
   </div>
-</nav>
 
+</body>
 
+<style>
+  .statsTable {
+    max-height: 80dvh;
+    overflow: auto;
 
-<?php
-
-$countOfRec = 0;
-$sql = "SELECT usernameUsers, emailUsers, lastName, firstName, teleNum, AdditionalData FROM users ORDER BY lastName, firstName ASC";
-$conn = Database::runQuery_mysqli();
-$result = $conn->query($sql);
-
-if ($result->num_rows > 0) {
-  echo "<table class=" . "table" . " id=" . "userlist" . "><th>Vezetéknév</th><th>Keresztnév</th><th>Felhasználónév</th><th>e-mail cím</th><th>Telefonszám</th><th>Csoportok</th>";
-  //output data of each row
-  //Displays amount of records found in leltar_master DB
-  while ($row = $result->fetch_assoc()) {
-    if (!empty($row["AdditionalData"])) {
-      $groupData = json_decode($row["AdditionalData"], true);
-
-
-      $userGroups = implode(", ", $groupData["groups"]);
-    } else {
-      $userGroups = "Nincs csoport";
+    &::-webkit-scrollbar-track {
+      background: rgb(255, 255, 255);
+      /* color of the tracking area */
     }
 
-    echo "<tr><td>" . $row["lastName"] . "</td><td>" . $row["firstName"] . "</td><td>" . $row["usernameUsers"] . "</td><td><a href=mailto:" . $row["emailUsers"] . " target=_top>" . $row["emailUsers"] . "</a></td><td>" . $row["teleNum"] . "</td><td>" . $userGroups . "</td><td></tr>";
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+      /* width of the entire scrollbar */
+    }
 
-    $countOfRec += 1;
+    &::-webkit-scrollbar-thumb {
+      background-color: rgb(179, 179, 179);
+      /* color of the scroll thumb */
+      border-radius: 20px;
+    }
   }
-} else {
-  echo "0 results";
-}
-echo "</table>";
-$conn->close(); ?>
+</style>
+
+
+<script>
+  $(document).ready(function () {
+    loadTable();
+  });
+
+
+  async function loadTable() {
+    const users = JSON.parse(await $.ajax({
+      url: "../Accounting.php",
+      type: "POST",
+      data: {
+        mode: "getPublicUserInfo",
+      },
+    }));
+
+
+    console.log(users);
+
+    const table = document.createElement("table");
+    table.id = "itemTable";
+    table.className = "table table-striped table-bordered table-hover";
+
+    const header = table.createTHead();
+    const headerRow = header.insertRow(0);
+    const headers = ["Vezetéknév", "Keresztnév", "Felhasználónév", "E-mail cím", "Telefonszám"];
+    headers.forEach((header, index) => {
+      const th = document.createElement("th");
+      th.innerHTML = header;
+      //th.style.cursor = "pointer";
+      th.setAttribute("data-header", header);
+      headerRow.appendChild(th);
+    });
+
+    const body = table.createTBody();
+    users.forEach((item) => {
+      const row = body.insertRow(-1);
+      const cellValues = [
+        item.lastName,
+        item.firstName,
+        item.usernameUsers,
+        `<a href="mailto:${item.emailUsers}">${item.emailUsers}</a>`,
+        `<a href="tel:${item.teleNum}">${item.teleNum}</a>`
+      ];
+      cellValues.forEach((value, index) => {
+        const cell = row.insertCell(index);
+        cell.innerHTML = value;
+      });
+    });
+
+
+    document.getElementById("tableContainer").innerHTML = "";
+    document.getElementById("tableContainer").appendChild(table);
+
+  }
+</script>

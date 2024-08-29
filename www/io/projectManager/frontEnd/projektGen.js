@@ -3,32 +3,32 @@
 function generateProjects(project, mobile = false) {
     return new Promise(async (resolve, reject) => {
         try {
+            const container = document.getElementsByClassName("container")[0];
             if (mobile) {
                 // Generating accordion
                 let accordion = document.createElement("div");
                 accordion.classList.add("accordion");
                 accordion.id = "accordion";
 
-                document.getElementsByClassName("container")[0].innerHTML = "";
-                document.getElementsByClassName("container")[0].appendChild(accordion);
+                container.innerHTML = "";
+                container.appendChild(accordion);
 
-                for (let i = 0; i < project.length; i++) {
-                    await generateMobileProjectBody(project[i], accordion);
-                }
+                await Promise.all(project.map(p => generateMobileProjectBody(p, accordion)));
             } else {
-                for (let i = 0; i < project.length; i++) {
-                    await generateProjectBody(project[i]);
-                }
+                await Promise.all(project.map(generateProjectBody));
             }
-            resolve();
+
+            await generateNewProjectButton(mobile);
         } catch (error) {
-            reject(error);
+            console.error(error);
         }
+        resolve();
     });
 }
 
 
-async function generateBigView(project) {
+async function generateMobileView(project) {
+    
     let projectName = project.Name;
     let projectID = project.ID;
 
@@ -46,7 +46,7 @@ async function generateBigView(project) {
     // Add back button
     let backButton = document.createElement("button");
     backButton.classList.add("btn");
-    backButton.innerHTML = '<i class="far fa-arrow-alt-circle-left fa-lg"></i>';
+    backButton.innerHTML = '<i class="fas fa-compress-alt fa-lg"></i>';
     backButton.onclick = function () {
         window.location.href = "index.php";
     }
@@ -66,19 +66,19 @@ async function generateBigView(project) {
     if (project.Deadline) {
         let deadline = document.createElement("li");
         deadline.classList.add("nav-item");
-        deadline.innerHTML = "<a class='nav-link disabled' aria-disabled='true'><b>" + await getDeadline(project.Deadline) + "</b></a>";
+        deadline.innerHTML = "<a class='nav-link disabled' aria-disabled='true'><b>" + getDeadline(project.Deadline) + "</b></a>";
         nav.appendChild(deadline);
     }
 
     projectCard.appendChild(nav);
-
+    
     // Add settings button to project title
     try {
         nav.appendChild(changeProjectSettingsButton(projectID));
     } catch (error) {
         ;
     }
-
+    
     // Create a nav div
     let navDiv = document.createElement("div");
     navDiv.classList.add("tab-content");
@@ -95,7 +95,7 @@ async function generateBigView(project) {
 
     // Create a new project description
     projectBody.appendChild(createDiscription(projectID, project.Description));
-
+    
     // Generating the project tasks
     projectBody.appendChild(await generateTasks(projectID, project.canEdit));
 
@@ -112,32 +112,14 @@ async function generateBigView(project) {
         projectBody.appendChild(ul);
 
         // create li elements
-        let text = document.createElement("li");
-        text.classList.add("dropdown-item");
-        text.innerHTML = "<i class='fas fa-paragraph fa-sm'></i> Szöveg";
-        text.style.cursor = "pointer";
-        text.onclick = function () {
-            addNewTask(projectID, "text");
+        let task = document.createElement("li");
+        task.classList.add("dropdown-item");
+        task.innerHTML = "<i class='fas fa-stream fa-sm'></i> Feladat";
+        task.style.cursor = "pointer";
+        task.onclick = function () {
+            addNewTask(projectID, "task", project.Deadline);
         }
-        ul.appendChild(text);
-
-        let image = document.createElement("li");
-        image.classList.add("dropdown-item");
-        image.innerHTML = "<i class='far fa-image fa-sm'></i> Kép";
-        image.style.cursor = "pointer";
-        image.onclick = function () {
-            addNewTask(projectID, "image");
-        }
-        ul.appendChild(image);
-
-        let file = document.createElement("li");
-        file.classList.add("dropdown-item");
-        file.innerHTML = "<i class='fas fa-file-alt'></i> Fájl";
-        file.style.cursor = "pointer";
-        file.onclick = function () {
-            addNewTask(projectID, "file");
-        }
-        ul.appendChild(file);
+        ul.appendChild(task);
 
         let checklist = document.createElement("li");
         checklist.classList.add("dropdown-item");
@@ -174,7 +156,7 @@ async function generateBigView(project) {
     }
     // Adding members to the project body
     membersBody.appendChild(await generateMembers(projectID));
-
+    
 }
 // Function to generate a mobile project list
 
@@ -219,7 +201,7 @@ async function generateMobileProjectBody(project, accordion) {
 
     // Generate tasks inside the project
     let description = document.createElement("p");
-    description.innerHTML = project.Description;
+    description.innerHTML = makeFormatting(project.Description);
     body.appendChild(description);
 
     // Project deadline
@@ -250,7 +232,7 @@ async function generateProjectBody(project) {
     let projectID = project.ID;
 
     // Div to add projects to
-    let projectHolder = document.getElementById("projectHolder");
+    const projectHolder = document.getElementById("projectHolder");
 
     // Create a new project holder card
     let projectCard = document.createElement("div");
@@ -271,8 +253,9 @@ async function generateProjectBody(project) {
     // Create li elements
     let tasks = document.createElement("li");
     tasks.classList.add("nav-item");
-    tasks.innerHTML = `<button class="nav-link active" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-tab-pane-${projectID}" type="button" role='tab' aria-controls='task-tab-pane' aria-selected='true'>
-    <a data-bs-toggle="tooltip" data-bs-title="${project.Description}">${projectName}</a></button>`;
+    //tasks.innerHTML = `<button class="nav-link active" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-tab-pane-${projectID}" type="button" role='tab' aria-controls='task-tab-pane' aria-selected='true'>
+    //<a data-bs-toggle="tooltip" data-bs-title="${project.Description}">${projectName}</a></button>`;
+    tasks.innerHTML = `<button class="nav-link active" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-tab-pane-${projectID}" type="button" role='tab' aria-controls='task-tab-pane' aria-selected='true'>${projectName}</button>`;
     nav.appendChild(tasks);
 
     let members = document.createElement("li");
@@ -292,6 +275,9 @@ async function generateProjectBody(project) {
         deadline.innerHTML = `<a data-bs-toggle="tooltip" data-bs-title="${project.Deadline.slice(0, -3)}">${deadlineText}</a>`;
         let deadlineColor = getDeadlineColor(project.Deadline);
         switch (deadlineColor) {
+            case "longAgo":
+                deadline.classList.add("bg-secondary");
+                break;
             case "overdue":
                 deadline.classList.add("bg-danger");
                 break;
@@ -331,7 +317,7 @@ async function generateProjectBody(project) {
 
 
     // Create a new project description
-    //projectBody.appendChild(createDiscription(projectID, project.Description));
+    projectBody.appendChild(createDiscription(projectID, project.Description));
 
     // Generating the project tasks
     projectBody.appendChild(await generateTasks(projectID, project.canEdit));
@@ -349,32 +335,14 @@ async function generateProjectBody(project) {
         projectBody.appendChild(ul);
 
         // create li elements
-        let text = document.createElement("li");
-        text.classList.add("dropdown-item");
-        text.innerHTML = "<i class='fas fa-paragraph fa-sm'></i> Szöveg";
-        text.style.cursor = "pointer";
-        text.onclick = function () {
-            addNewTask(projectID, "text", project.Deadline);
+        let task = document.createElement("li");
+        task.classList.add("dropdown-item");
+        task.innerHTML = "<i class='fas fa-stream fa-sm'></i> Feladat";
+        task.style.cursor = "pointer";
+        task.onclick = function () {
+            addNewTask(projectID, "task", project.Deadline);
         }
-        ul.appendChild(text);
-
-        let image = document.createElement("li");
-        image.classList.add("dropdown-item");
-        image.innerHTML = "<i class='far fa-image fa-sm'></i> Kép";
-        image.style.cursor = "pointer";
-        image.onclick = function () {
-            addNewTask(projectID, "image", project.Deadline);
-        }
-        ul.appendChild(image);
-
-        let file = document.createElement("li");
-        file.classList.add("dropdown-item");
-        file.innerHTML = "<i class='fas fa-file-alt'></i> Fájl";
-        file.style.cursor = "pointer";
-        file.onclick = function () {
-            addNewTask(projectID, "file", project.Deadline);
-        }
-        ul.appendChild(file);
+        ul.appendChild(task);
 
         let checklist = document.createElement("li");
         checklist.classList.add("dropdown-item");
@@ -396,7 +364,7 @@ async function generateProjectBody(project) {
     }
     // Create Body for members
     let membersBody = document.createElement("div");
-    membersBody.classList.add("card-body", "projectMembers", "tab-pane", "fade");
+    membersBody.classList.add("projectMembers", "tab-pane", "fade");
     membersBody.id = "users-tab-pane-" + projectID;
     membersBody.role = "tabpanel";
     membersBody.ariaLabelledby = "users-tab";
@@ -413,72 +381,6 @@ async function generateProjectBody(project) {
     membersBody.appendChild(await generateMembers(projectID));
 
 
-
-
-    return projectCard;
-}
-
-// Archived projects
-
-async function showArchivedProjects() {
-    try {
-        let archivedProjects = await fetchProjects(1);
-        if (archivedProjects.length == 0) {
-            alert("Nincs archivált projekt.");
-            return;
-        }
-
-        // Create a new project holder card
-        let projectHolder = document.getElementById("archivedTasks");
-        projectHolder.innerHTML = "";
-
-        for (let i = 0; i < archivedProjects.length; i++) {
-            projectHolder.appendChild(await generateArchivedProjectBody(archivedProjects[i]));
-        }
-
-        $('#taskArchiveModal').modal('show');
-    } catch (error) {
-        console.error("Error showing archived projects:", error);
-    }
-
-}
-
-async function generateArchivedProjectBody(project) {
-    console.log(`Generating archived project body: ${project.Name}`);
-
-    // Create a new project card
-    let projectCard = document.createElement("div");
-    projectCard.classList.add("card", "archivedProjectCard");
-    projectCard.id = project.ID;
-
-    // Create a new project body
-    let projectBody = document.createElement("div");
-    projectBody.classList.add("card-body", "d-flex", "justify-content-between", "align-items-center");
-    projectBody.innerHTML = project.Name;
-    projectCard.appendChild(projectBody);
-
-    // Create button holder div
-    let buttonHolder = document.createElement("div");
-    projectBody.appendChild(buttonHolder);
-
-    // Create restore button
-    let restoreButton = document.createElement("button");
-    restoreButton.classList.add("btn", "btn-success");
-    restoreButton.innerHTML = `<i class="fas fa-undo"></i>`;
-    restoreButton.style.marginRight = "10px";
-    restoreButton.onclick = function () {
-        restoreProject(project.ID);
-    }
-    buttonHolder.appendChild(restoreButton);
-
-    // Create delete button
-    let deleteButton = document.createElement("button");
-    deleteButton.classList.add("btn", "btn-danger");
-    deleteButton.innerHTML = `<i class="fas fa-trash-alt"></i>`;
-    deleteButton.onclick = function () {
-        deleteProject(project.ID);
-    }
-    buttonHolder.appendChild(deleteButton);
 
 
     return projectCard;
@@ -512,7 +414,10 @@ function getDeadlineColor(deadline) {
         let now = new Date();
         let projectDeadline = new Date(deadline);
 
-        if (projectDeadline < now) {
+        // If task is overdue more than a week, return
+        if (now - projectDeadline > (1000 * 60 * 60 * 24 * 7)) {
+            return "longAgo";
+        } else if (projectDeadline < now) {
             return "overdue";
         } else if (projectDeadline - now < (1000 * 60 * 60 * 48)) {   // 48 hours
             return "soon";
@@ -524,21 +429,34 @@ function getDeadlineColor(deadline) {
 
 function createDiscription(projectID, Description) {
     // Create a new project description
-    let projectDescriptionHolder = document.createElement("div");
+    const projectDescriptionHolder = document.createElement("div");
     projectDescriptionHolder.classList.add("projectDescriptionHolder");
 
-    let projectDescription = document.createElement("span");
-    projectDescription.classList.add("card-text", "projectDescription");
-    projectDescription.innerHTML = Description;
-    projectDescriptionHolder.appendChild(projectDescription);
 
-    try {
-        projectDescriptionHolder.appendChild(editDescriptionButton(projectID));
-    } catch (error) {
-        ;
+    // Make the description max 100 characters
+    if (Description.length > 100) {
+        var ShortDescription = `${makeFormatting(Description.slice(0, 60)) || 'Nincs leírás'} <a class="descToggle" onclick=ToggleDesc(${projectID})>Több...</a>`;
     }
 
+    const projectDescription = document.createElement("span");
+    projectDescription.classList.add("card-text", "projectDescription");
+    projectDescription.innerHTML = ShortDescription || Description;
+    projectDescription.setAttribute("fullDescription", Description);
+    projectDescriptionHolder.appendChild(projectDescription);
+
     return projectDescriptionHolder;
+}
+
+function ToggleDesc(projectID) {
+    const desc = document.getElementById(projectID).getElementsByClassName("projectDescription")[0];
+    const descToggle = desc.getElementsByClassName("descToggle")[0];
+    const Description = desc.getAttribute("fullDescription");
+
+    if (descToggle.innerHTML == "Több...") {
+        desc.innerHTML = `${makeFormatting(Description)} <a class="descToggle" onclick=ToggleDesc(${projectID})>Kevesebb...</a>`;
+    } else {
+        desc.innerHTML = `${makeFormatting(Description.slice(0, 60))} <a class="descToggle" onclick=ToggleDesc(${projectID})>Több...</a>`;
+    }
 }
 
 
@@ -626,7 +544,7 @@ async function createMember(member, projectID) {
 
 
 
-async function getDeadline(deadline) {
+function getDeadline(deadline) {
     // If there is no deadline
     if (!deadline) {
         return "";
@@ -646,5 +564,8 @@ async function getDeadline(deadline) {
     if (differenceInHours > 0) return differenceInHours + " óra";
     if (differenceInMinutes > 0) return differenceInMinutes + " perc";
     if (differenceInSeconds >= 0) return "Épp most";
+
+    // if the deadline is overdue more than a week
+    if (differenceInDays < -7) return "Régen";
     return "Lejárt";
 }

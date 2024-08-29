@@ -7,12 +7,14 @@ function dragAndDropReady() {
 
     taskHandles.forEach(taskHandle => {
         taskHandle.addEventListener('dragstart', () => {
-            let taskCard = taskHandle.parentElement.parentElement.parentElement;
-            taskCard.classList.add('dragging');
-            taskCard.draggable = true;
+            //$('.toast').toast('hide');
 
             // Deselect everything on the page
             window.getSelection().removeAllRanges();
+
+            let taskCard = taskHandle.parentElement.parentElement.parentElement;
+            taskCard.classList.add('dragging');
+            taskCard.draggable = true;
         });
 
         taskHandle.addEventListener('dragend', () => {

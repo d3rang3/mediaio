@@ -11,7 +11,9 @@ use Mediaio\Database;
 use Mediaio\Accounting;
 use Mediaio\MailService;
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 class Core
 {
@@ -97,20 +99,20 @@ class Core
 
                 $sql = "SELECT * from users WHERE usernameUsers=? OR emailUsers=?;";
                 //echo binded statement
-                
+
                 $connection = Database::runQuery_mysqli();
                 $stmt = $connection->prepare($sql);
                 $stmt->bind_param("ss", $userName, $userName);
                 $stmt->execute();
                 $result = $stmt->get_result();
-                        if($row = mysqli_fetch_assoc($result)){
-                            $pwdcheck = password_verify($password, $row['pwdUsers']);
-                            if ($pwdcheck == false){
-                                if($RESTAPImode==true){
-                                    //echo "Wrong pass";
-                                    return array('code' => 401);
-                                    exit();
-                                }
+                if ($row = mysqli_fetch_assoc($result)) {
+                    $pwdcheck = password_verify($password, $row['pwdUsers']);
+                    if ($pwdcheck == false) {
+                        if ($RESTAPImode == true) {
+                            //echo "Wrong pass";
+                            return array('code' => 401);
+                            exit();
+                        }
 
                         Accounting::logEvent($row['idUsers'], "login_WrongPass");
                         header("Location: ../index.php?error=WrongPass");
@@ -129,25 +131,16 @@ class Core
                         }
 
                         if ($RESTAPImode == true) {
-                            //echo "OK";
-                            //Generate a 2048 character long, base64 encoded token.
                             $token = base64_encode(openssl_random_pseudo_bytes(128));
                             //Store key in database
                             $sql = "UPDATE users SET apikey='$token' WHERE usernameUsers='$userName' OR emailUsers='$userName';"; // SQL INJECTION VULNERABILITY !!!!!!!!!!!!!!!!!!!
                             $conn = Database::runQuery_mysqli();
                             $result = mysqli_query($conn, $sql);
-                            //echo $sql;
-                            //Check affected rows
                             if ($conn->affected_rows != 1) {
                                 return array('code' => 500);
                             } else {
                                 return array('token' => $token, 'code' => 200);
                             }
-
-                            //bind parameters
-
-
-                            exit();
                         }
 
                         $_SESSION['userId'] = $row['idUsers'];
@@ -160,6 +153,7 @@ class Core
                         $_SESSION['AdditionalData'] = $row['AdditionalData'];
                         $additionalData = json_decode($_SESSION['AdditionalData'], true);
                         $_SESSION['groups'] = $additionalData['groups'];
+                        $_SESSION['nas'] = null;
 
                         Accounting::logEvent($row['idUsers'], "login_Success");
                         header("Location: ../index.php?login=success");
@@ -170,7 +164,10 @@ class Core
                     }
                 } else {
 
-                    Accounting::logEvent(0, "login_NoUser", '{"username":"' . $userName . '"}');
+                    $Data = [
+                        'username' => $userName
+                    ];
+                    Accounting::logEvent(0, "login_NoUser", $Data);
                     header("Location: ../index.php?error=NoUser");
                     exit();
                 }
@@ -182,10 +179,18 @@ class Core
     }
     function logoutUser()
     {
-        Accounting::logEvent($_SESSION['userId'], "logout");
+        // Check if userId is set in session
+        if (isset($_SESSION['userId'])) {
+            Accounting::logEvent($_SESSION['userId'], "logout");
+        }
+        // Use output buffering to prevent headers already sent warning
+        ob_start();
+
         session_unset();
         session_destroy();
+
         header("Location: ../index.php?logout=success");
+        ob_end_flush(); // Send the buffer output and turn off output buffering
     }
     function changePassword($postData)
     {
@@ -203,26 +208,26 @@ class Core
 
 
             $sql = "SELECT * FROM users WHERE usernameUsers=?;";
-            $connection=Database::runQuery_mysqli(); 
+            $connection = Database::runQuery_mysqli();
             $stmt = $connection->prepare($sql);
             $stmt->bind_param("s", $postData['username']);
             $stmt->execute();
             $result = $stmt->get_result();
-                if($row = mysqli_fetch_assoc($result)){
-                    $pwdcheck = password_verify($postData['oldpwd'], $row['pwdUsers']);
-                    if ($pwdcheck == false){
-                        header("Location: ./profile/chPwd.php?error=OldPwdError");
-                    }else if ($pwdcheck == true){
-                        $hashedpwd = password_hash($postData['password'], PASSWORD_BCRYPT); 
-                        $sql = "UPDATE users SET pwdUsers=? WHERE usernameUsers=?;";
-                        $connection=Database::runQuery_mysqli(); 
-                        $stmt = $connection->prepare($sql);
-                        $stmt->bind_param("ss", $hashedpwd, $postData['username']);
-                        $stmt->execute();
-                        $result = $stmt->get_result();
-                        //$result=Database::runQuery($sql);
-                                //E-mail küldése a felhasználónak
-                                $content = '
+            if ($row = mysqli_fetch_assoc($result)) {
+                $pwdcheck = password_verify($postData['oldpwd'], $row['pwdUsers']);
+                if ($pwdcheck == false) {
+                    header("Location: ./profile/chPwd.php?error=OldPwdError");
+                } else if ($pwdcheck == true) {
+                    $hashedpwd = password_hash($postData['password'], PASSWORD_BCRYPT);
+                    $sql = "UPDATE users SET pwdUsers=? WHERE usernameUsers=?;";
+                    $connection = Database::runQuery_mysqli();
+                    $stmt = $connection->prepare($sql);
+                    $stmt->bind_param("ss", $hashedpwd, $postData['username']);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    //$result=Database::runQuery($sql);
+                    //E-mail küldése a felhasználónak
+                    $content = '
                                 <html>
                                 <head>
                                 <title>Arpad Media IO</title>
@@ -237,7 +242,7 @@ class Core
                                 </html>
                                 ';
                     try {
-                        MailService::sendContactMail('MediaIO - jelszócsere', $_SESSION['email'], 'Sikeres jelszócsere!', $content);
+                        MailService::sendContactMail($_SESSION['email'], 'Sikeres jelszócsere!', $content);
                         //logout the user with userlogging
                         $this->logoutUser();
                         header("Location: ./index.php?logout=pwChange");
@@ -398,8 +403,8 @@ class Core
             exit();
         } else {
             //Check if this user already exists
-            $sql = "SELECT usernameUsers FROM users WHERE usernameUsers=?" /*AND pwdUsers=?*/;
-            $connection=Database::runQuery_mysqli(); 
+            $sql = "SELECT usernameUsers FROM users WHERE usernameUsers=?" /*AND pwdUsers=?*/ ;
+            $connection = Database::runQuery_mysqli();
             $stmt = $connection->prepare($sql);
             $stmt->bind_param("s", $postData['username']);
             $stmt->execute();
@@ -457,7 +462,7 @@ class Core
                           <h6>Ez egy automatikus üzenet. Kérem ne küldjön vissza semmit.<br>Üdvözlettel: <br> Arpad Media Admin</h6>
                         </body>
                         </html>';
-                    MailService::sendContactMail('MediaIO', $postData['email'], 'Sikeres Regisztráció', $message);
+                    MailService::sendContactMail($postData['email'], 'Sikeres Regisztráció', $message);
                     header("Location: ./index.php?signup=success");
                 }
             }
@@ -482,7 +487,7 @@ class Core
         } else {
             //Check if password is correct.
             $sql = "UPDATE users SET TOKEN=? WHERE usernameUsers=? AND emailUsers=?";
-            $connection=Database::runQuery_mysqli(); 
+            $connection = Database::runQuery_mysqli();
             $stmt = $connection->prepare($sql);
             $stmt->bind_param("sss", $TOKEN, $username, $emailAddr);
             $stmt->execute();
@@ -576,7 +581,7 @@ if (isset($_POST['pwdLost-submit'])) {
                           <h6>Ha ezt a tokent nem te kérted, kérlek lépj kapcsolatba egy vezetőségi taggal. Üdvözlettel: <br> Arpad Media Admin</h6>
                         </body>
                         </html>';
-        MailService::sendContactMail('MediaIO', $emailAddr, 'Jelszó helyreállítási token', $message);
+        MailService::sendContactMail($emailAddr, 'Jelszó helyreállítási token', $message);
         header("Location: ./profile/lostPwd.php?error=tokenSent");
     }
 }
@@ -614,7 +619,7 @@ if (isset($_POST['pwdLost-change-submit'])) {
                                 </html>
                                 ';
             try {
-                MailService::sendContactMail('MediaIO - jelszócsere', $_POST['emailAddr'], 'Sikeres jelszócsere!', $content);
+                MailService::sendContactMail($_POST['emailAddr'], 'Sikeres jelszócsere!', $content);
                 header("Location: ./profile/lostPwd.php?error=none");
             } catch (\Exception $e) {
                 echo "Mailer Error: " . $e;

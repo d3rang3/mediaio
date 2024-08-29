@@ -7,13 +7,14 @@ include ("../translation.php"); ?>
 <script src="frontEnd/elementGenerator.js" type="text/javascript"></script>
 <script src="frontEnd/formSubmission.js" type="text/javascript"></script>
 <script src="frontEnd/fetchData.js" type="text/javascript"></script>
+<script src="frontEnd/formElements.js" type="text/javascript"></script>
 
 <body>
 
    <div class="container" id="form-container">
       <form class="row form-control" id="form-body">
          <h2 class="rainbow" id="form_name"></h2>
-         <h5 id="form_header"></h5>
+         <h5 class="formViewHeader" id="form_header"></h5>
       </form>
 
       <div class="row">

@@ -1,0 +1,79 @@
+.itemTableHolder {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    max-height: 75dvh;
+    max-width: 700px;
+
+    .panel-body {
+        max-height: 70dvh;
+        overflow: auto;
+
+        &::-webkit-scrollbar-track {
+            background: rgb(255, 255, 255);
+            /* color of the tracking area */
+        }
+
+        &::-webkit-scrollbar {
+            width: 12px;
+            /* width of the entire scrollbar */
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: rgb(179, 179, 179);
+            /* color of the scroll thumb */
+            border-radius: 20px;
+        }
+    }
+}
+
+.searchField {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    max-width: 700px;
+    position: relative;
+}
+
+#itemsList {
+    position: absolute;
+    z-index: 9999;
+    overflow: auto;
+    max-height: 20dvh;
+    top: 40px;
+    max-width: inherit;
+    width: 95%;
+
+    padding: 5px;
+    
+    background-color: white;
+
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 12px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
+.searchItem {
+    display: none;
+}
+
+
+.highlight {
+    font-weight: bold;
+}
+
+.selected {
+    background-color: #ebebeb;
+}

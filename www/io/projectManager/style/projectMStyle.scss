@@ -26,6 +26,13 @@
     }
 }
 
+.descToggle {
+    font-style: italic;
+    color: rgb(100, 100, 100);
+
+    cursor: pointer;
+}
+
 .projectHolder {
     display: flex;
     flex-wrap: nowrap;
@@ -33,7 +40,10 @@
     gap: 15px;
 
     overflow: auto;
+    min-height: 300px;
     max-height: 79dvh;
+
+    padding-bottom: 5px;
 
     &::-webkit-scrollbar-track {
         background: rgb(255, 255, 255);
@@ -61,10 +71,31 @@
     }
 }
 
+
+.addProjectButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .addButton {
+        height: 30%;
+
+        @media (max-width: 768px) {
+            height: 30px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        margin-top: 10px;
+    }
+}
+
+
 .projectCard {
     min-width: 400px;
     max-width: 400px;
-    max-height: 60%;
+    height: inherit;
+    max-height: inherit;
     /* min-height: 60%; */
 }
 
@@ -100,11 +131,34 @@
     vertical-align: middle;
     align-items: center;
     justify-content: space-between;
-    /* border-bottom: 1px solid black; */
+    border-bottom: 1px solid rgb(184, 184, 184);
+    padding-bottom: 5px;
 }
 
 .projectDescription {
     overflow: hidden;
+}
+
+#projectDescription {
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+        /* roundness of the scroll thumb */
+        /* border: 1px solid rgb(221, 221, 221); */
+        /* creates padding around scroll thumb */
+    }
 }
 
 .projectBody {
@@ -130,11 +184,8 @@
 }
 
 .tab-content {
-    max-height: 72dvh;
-
-    @media (max-width: 768px) {
-        max-height: 85dvh;
-    }
+    height: 100%;
+    max-height: 94%;
 }
 
 
@@ -146,6 +197,7 @@
     max-height: 200px;
     overflow: auto;
     align-items: center;
+    padding: 5px;
 
     &::-webkit-scrollbar-track {
         background: rgb(255, 255, 255);
@@ -178,6 +230,12 @@
     background-color: rgb(163, 235, 175);
 }
 
+.lateSubmission {
+    background-color: rgb(219, 114, 114);
+    color: rgb(255, 255, 255);
+
+}
+
 .memberBody {
     display: flex;
     align-items: center;
@@ -206,6 +264,8 @@
     max-height: 100%;
     width: 100%;
 
+    padding-right: 5px;
+
     &::-webkit-scrollbar-track {
         background: rgb(255, 255, 255);
         /* color of the tracking area */
@@ -228,9 +288,29 @@
     margin-bottom: 10px;
 }
 
+#textTaskData {
+    &::-webkit-scrollbar-track {
+        background: rgb(255, 255, 255);
+        /* color of the tracking area */
+    }
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        /* width of the entire scrollbar */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(179, 179, 179);
+        /* color of the scroll thumb */
+        border-radius: 20px;
+    }
+}
+
 .membersHolder {
     overflow: auto;
     max-height: 100%;
+
+    padding-right: 5px;
 
     &::-webkit-scrollbar-track {
         background: rgb(255, 255, 255);
@@ -272,30 +352,63 @@
 
 .dragging {
     opacity: 0.5;
+
+    .taskImage {
+
+        height: 100px;
+    }
+
     /* animation: shake 1s infinite; */
 }
 
 @keyframes shake {
-    0% { transform: translate(1px, 1px) rotate(0deg); }
-    10% { transform: translate(-1px, -2px) rotate(-1deg); }
-    20% { transform: translate(-3px, 0px) rotate(1deg); }
-    30% { transform: translate(3px, 2px) rotate(0deg); }
-    40% { transform: translate(1px, -1px) rotate(1deg); }
-    50% { transform: translate(-1px, 2px) rotate(-1deg); }
-    60% { transform: translate(-3px, 1px) rotate(0deg); }
-    70% { transform: translate(3px, 1px) rotate(-1deg); }
-    80% { transform: translate(-1px, -1px) rotate(1deg); }
-    90% { transform: translate(1px, 2px) rotate(0deg); }
-    100% { transform: translate(1px, -2px) rotate(-1deg); }
+    0% {
+        transform: translate(1px, 1px) rotate(0deg);
+    }
+
+    10% {
+        transform: translate(-1px, -2px) rotate(-1deg);
+    }
+
+    20% {
+        transform: translate(-3px, 0px) rotate(1deg);
+    }
+
+    30% {
+        transform: translate(3px, 2px) rotate(0deg);
+    }
+
+    40% {
+        transform: translate(1px, -1px) rotate(1deg);
+    }
+
+    50% {
+        transform: translate(-1px, 2px) rotate(-1deg);
+    }
+
+    60% {
+        transform: translate(-3px, 1px) rotate(0deg);
+    }
+
+    70% {
+        transform: translate(3px, 1px) rotate(-1deg);
+    }
+
+    80% {
+        transform: translate(-1px, -1px) rotate(1deg);
+    }
+
+    90% {
+        transform: translate(1px, 2px) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(1px, -2px) rotate(-1deg);
+    }
 }
 
 
 /* EXTRA */
-
-.background {
-    background-color: #ebebeb;
-    backdrop-filter: blur(5px);
-}
 
 .form-check-input {
     margin-top: 2px;
@@ -313,7 +426,66 @@
     border: 2px solid red;
 }
 
-.spinner-grow {
+#fileExplorer {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 500px;
+    overflow: auto;
+
+    .fileElement {
+        border: 1px solid rgb(179, 179, 179);
+        border-radius: 3px;
+        background-color: rgb(255, 255, 255);
+        padding: 3px;
+        transition: background-color 0.2s ease-in-out;
+
+        &:hover {
+            background-color: rgb(191, 235, 253);
+        }
+    }
+
+    .selected {
+        background-color: rgb(191, 235, 253);
+    }
+}
+
+#taskFileManager {
+    flex-wrap: nowrap;
+}
+
+#taskFiles {
+    .fileElement {
+        border: 1px solid rgb(179, 179, 179);
+        border-radius: 3px;
+        background-color: rgb(255, 255, 255);
+        padding: 3px;
+    }
+
+    width: 100%;
+    max-height: 90px;
+}
+
+.taskCardFiles {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 5px;
+
+    padding-top: 5px;
+    border-top: 1px solid rgb(100, 100, 100);
+
+    .fileElement {
+        border: 1px solid rgb(179, 179, 179);
+        border-radius: 5px;
+        background-color: rgb(255, 255, 255);
+        padding: 5px;
+        width: fit-content;
+    }
+}
+
+#projectSpinner {
     /* Set position to absolute */
     position: absolute;
     /* Center the spinner */
@@ -369,3 +541,73 @@
     }
 }
 
+
+
+/* BACKGROUND */
+
+/* body {
+    background: linear-gradient(-45deg, #c561f3, #e73c7e, #0206ff, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    height: 100vh;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+} */
+
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.gradient {
+    --size: 250px;
+    --speed: 50s;
+    --easing: cubic-bezier(0.8, 0.2, 0.2, 0.8);
+
+    width: var(--size);
+    height: var(--size);
+    filter: blur(calc(var(--size) / 5));
+    background: linear-gradient(rgba(22, 57, 173, 0.842), rgba(197, 57, 252, 0.685));
+    animation: rotate var(--speed) var(--easing) alternate infinite;
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -9999;
+}
+
+@media (min-width: 720px) {
+    .gradient {
+        --size: 500px;
+    }
+}
+
+body {
+    background-color: #ebebeb;
+    //position: absolute;
+    //inset: 0;
+    //display: flex;
+    //place-content: center;
+    //align-items: center;
+    //overflow: hidden;
+}

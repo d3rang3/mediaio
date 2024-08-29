@@ -4,23 +4,37 @@
 
 async function openTaskAnswers(taskId, projectId) {
 
-    // Get the task answers
-    var uDataResponse = await userTaskData(taskId);
-    var uData = Array.isArray(uDataResponse) ? JSON.parse(uDataResponse) : [JSON.parse(uDataResponse)];
-
-    // Get the task
-    var task = JSON.parse(await fetchTask(null, taskId));
-
-    // Fetch the task members
-    var members = JSON.parse(await fetchTaskMembers(taskId, projectId));
+    $('#taskAnswersModal').modal('show');
 
     // Get the working area
-    var workingArea = document.getElementById('taskAnswerData');
+    const workingArea = document.getElementById('taskAnswerData');
     workingArea.innerHTML = '';
 
+    // Add spinner
+    let spinner = document.createElement("div");
+    spinner.classList.add("spinner-grow", "text-secondary");
+    spinner.id = "loadingSpinner";
+    spinner.style.margin = "auto";
+    spinner.style.display = "block";
+    workingArea.appendChild(spinner);
+
+    // Get the task answers
+    let uDataResponse = await userTaskData(taskId, "get");
+    let uData = JSON.parse(uDataResponse);
+    uData = uData.data ? uData.data : [];
+    console.log(uData);
+
+    // Get the task
+    let task = JSON.parse(await fetchTask(null, taskId));
+
+    // Fetch the task members
+    let members = JSON.parse(await fetchTaskMembers(taskId, projectId));
+
+    // Remove spinner
+    spinner.remove();
+
     switch (task.Task_type) {
-        case "text":
-        case "image":
+        case "task":
             var fillOutText = task.fillOutText;
 
             // Create a div for answered users
@@ -43,7 +57,8 @@ async function openTaskAnswers(taskId, projectId) {
                 if (uData.some(item => item.UserId === member.UserId)) {
                     var userAnswer = uData.find(item => item.UserId === member.UserId);
                     memberDiv.innerHTML = `<a data-bs-toggle="tooltip" data-bs-title="Leadva: ${userAnswer.submissionTime}">${member.firstName} ${member.lastName}</a>`;
-                    memberDiv.classList.add('selectedMember');
+                    // Check if the user answered late
+                    userAnswer.submissionTime > task.Deadline? memberDiv.classList.add('lateSubmission') : memberDiv.classList.add('selectedMember');
                     answeredUsers.appendChild(memberDiv);
                 } else {
                     notAnsweredUsers.appendChild(memberDiv);
@@ -79,10 +94,13 @@ async function openTaskAnswers(taskId, projectId) {
                 if (uData.some(item => item.UserId === member.UserId)) {
                     var userAnswer = uData.find(item => item.UserId === member.UserId);
                     memberDiv.innerHTML = `<a data-bs-toggle="tooltip" data-bs-title="Leadva: ${userAnswer.submissionTime}">${member.firstName} ${member.lastName}</a>`;
+                    // Check if the user answered late
+                    userAnswer.submissionTime > task.Deadline? memberDiv.classList.add('lateSubmission') : memberDiv.classList.add('selectedMember');
                     userAnswer = JSON.parse(userAnswer.Data);
                     userAnswer.forEach(answer => {
                         if (answer.checked == false) return;
                         var optionDiv = workingArea.querySelector(`div[data-option="${answer.value}"]`);
+                        if (!optionDiv) return;
                         var clonedMemberDiv = memberDiv.cloneNode(true); // clone the memberDiv
                         optionDiv.appendChild(clonedMemberDiv);
                     });
@@ -96,6 +114,4 @@ async function openTaskAnswers(taskId, projectId) {
 
     }
     toolTipRender();
-
-    $('#taskAnswersModal').modal('show');
 }

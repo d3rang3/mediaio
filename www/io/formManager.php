@@ -51,7 +51,7 @@ class formManager
   static function listForms()
   {
     $sql = "SELECT * FROM forms WHERE AccessRestrict='0';";
-    if (isset ($_SESSION['userId'])) {
+    if (isset($_SESSION['userId'])) {
       $sql = "SELECT * FROM forms WHERE AccessRestrict IN ('0', '2');";
       if (in_array("admin", $_SESSION['groups'])) {
         $sql = "SELECT * FROM forms";
@@ -60,21 +60,17 @@ class formManager
     $connection = Database::runQuery_mysqli();
     $result = $connection->query($sql);
     $connection->close();
-    $forms = array();
-    while ($row = $result->fetch_assoc()) {
-      $forms[] = $row;
-    }
+    $forms = $result->fetch_all(MYSQLI_ASSOC);
     echo json_encode($forms);
-    exit();
   }
 
-  static function saveForm($form, $id, $formHash)
+  static function saveFormSettings($form, $id, $formHash)
   {
     if (in_array("admin", $_SESSION['groups'])) {
       $form = json_decode($form, true);
       $form['elements'] = json_encode($form['elements'], JSON_UNESCAPED_UNICODE);
 
-      if ($id == -1) {
+      if ($id == null) {
         $id = formManager::getIdFromHash($formHash);
       }
 
@@ -83,7 +79,45 @@ class formManager
       $connection->query($sql);
       $connection->close();
       echo 200;
-      exit();
+    }
+  }
+
+  static function saveFormElements($formElements, $formHeader, $id, $formHash)
+  {
+    try {
+      if (in_array("admin", $_SESSION['groups'])) {
+        $formElements = json_decode($formElements, true);
+        $formElements = json_encode($formElements, JSON_UNESCAPED_UNICODE);
+
+        if ($id == null) {
+          $id = formManager::getIdFromHash($formHash);
+        }
+
+        // Prepare an SQL statement to prevent SQL injection
+        $sql = "UPDATE forms SET Header=?, Data=? WHERE ID=?;";
+        $connection = Database::runQuery_mysqli();
+        $stmt = $connection->prepare($sql);
+
+        // Bind parameters to the prepared statement
+        $stmt->bind_param("ssi", $formHeader, $formElements, $id);
+
+        // Execute the statement and check for success
+        if (!$stmt->execute()) {
+          throw new \Exception("Failed to update form.");
+        }
+
+        $stmt->close();
+        $connection->close();
+        echo 200;
+      } else {
+        throw new \Exception("User not authorized.");
+      }
+    } catch (\Exception $e) {
+      // Log the error or handle it as per your error handling policy
+      error_log($e->getMessage());
+      // Return an error code or message to the user
+      http_response_code(500); // Internal Server Error
+      echo 403;
     }
   }
 
@@ -96,7 +130,6 @@ class formManager
       $connection->close();
       $row = $result->fetch_assoc();
       echo json_encode($row);
-      exit();
     }
   }
 
@@ -109,7 +142,6 @@ class formManager
       $connection->query($sql);
       $connection->close();
       echo 200;
-      exit();
     }
   }
 
@@ -121,16 +153,15 @@ class formManager
       $connection->query($sql);
       $connection->close();
       echo 200;
-      exit();
     }
   }
 
   static function getForm($id, $formHash)
   {
     if ($id != null) {
-      if (isset ($_SESSION['userId']) && in_array("admin", $_SESSION['groups'])) {
+      if (isset($_SESSION['userId']) && in_array("admin", $_SESSION['groups'])) {
         $sql = "SELECT * FROM forms WHERE ID=" . $id . ";";
-      } else if (isset ($_SESSION['userId'])) {
+      } else if (isset($_SESSION['userId'])) {
         $sql = "SELECT * FROM forms WHERE ID=" . $id . " AND AccessRestrict IN ('0','2') AND Status='1';";
       } else {
         $sql = "SELECT * FROM forms WHERE ID=" . $id . " AND AccessRestrict='0' AND Status='1';";
@@ -145,10 +176,9 @@ class formManager
     //If no rows are returned, return 404
     if ($row == null) {
       echo 404;
-      exit();
+      return;
     }
     echo json_encode($row);
-    exit();
   }
 
 
@@ -166,10 +196,11 @@ class formManager
   static function submitAnswer($uid, $id, $formHash, $ip, $answers, $form)
   {
     // Prevent injection
-    if (preg_match('/[<>]/', $answers)) {
-      echo 500;
-      exit();
-    }
+    $answers = json_decode($answers, true);
+    array_walk_recursive($answers, function (&$value) {
+      $value = htmlspecialchars($value);
+    });
+    $answers = json_encode($answers, JSON_UNESCAPED_UNICODE);
     if ($id == -1) {
       $id = formManager::getIdFromHash($formHash);
     }
@@ -184,7 +215,17 @@ class formManager
 
     $connection->close();
     echo 200;
-    exit();
+  }
+
+  static function deleteAnswer($id)
+  {
+    if (in_array("admin", $_SESSION['groups'])) {
+      $sql = "DELETE FROM formanswers WHERE ID=" . $id . ";";
+      $connection = Database::runQuery_mysqli();
+      $connection->query($sql);
+      $connection->close();
+      echo 200;
+    }
   }
 
   static function getFormAnswers($id, $formHash)
@@ -202,7 +243,6 @@ class formManager
         $answers[] = $row;
       }
       echo json_encode($answers);
-      exit();
     }
   }
 
@@ -226,87 +266,79 @@ class formManager
       $writer->writeSheet($data);
       $writer->writeToFile('output.xlsx');
       echo 200;
-      exit();
     }
   }
 }
 
 
 
-if (isset ($_POST['mode'])) {
+if (isset($_POST['mode'])) {
 
   //Set timezone to the computer's timezone.
   date_default_timezone_set('Europe/Budapest');
 
-  if ($_POST['mode'] == 'createNewForm') {
-    echo formManager::createNewForm();
-    //Header set.
-    exit();
-  }
-  if ($_POST['mode'] == 'listForms') {
-    echo formManager::listForms();
-    //echo $_POST['value'] ;
-    //Header set.
-    exit();
-  }
-  if ($_POST['mode'] == 'generateXlsx') {
-    echo 'ASD';
-    echo formManager::generateXlsx($_POST['id']);
-    echo $_POST['value'];
-    //Header set.
-    exit();
-  }
-  if ($_POST['mode'] == 'save') {
-    echo formManager::saveForm(
-      $_POST['form'],
-      $_POST['id'],
-      $_POST['formHash']
-    );
-    exit();
-  }
+  switch ($_POST['mode']) {
+    case 'createNewForm':
+      echo formManager::createNewForm();
+      break;
 
-  if ($_POST['mode'] == 'changeBackground') {
-    echo formManager::changeBackground($_POST['name'], $_POST['id']);
-    exit();
-  }
+    case 'listForms':
+      echo formManager::listForms();
+      break;
 
-  if ($_POST['mode'] == 'getForm') {
-    echo formManager::getForm($_POST['id'], $_POST['formHash']);
-    exit();
-  }
+    case 'save':
+      echo formManager::saveFormSettings($_POST['form'], $_POST['id'], $_POST['formHash']);
+      break;
 
-  if ($_POST['mode'] == 'getLinkHash') {
-    echo formManager::getFormLinkHash($_POST['id']);
-    exit();
-  }
+    case 'saveFormElements':
+      echo formManager::saveFormElements($_POST['formElements'], $_POST['formHeader'], $_POST['formId'], $_POST['formHash']);
+      break;
 
-  if ($_POST['mode'] == 'newLinkHash') {
-    echo formManager::generateNewLinkHash($_POST['id']);
-    exit();
-  }
+    case 'changeBackground':
+      echo formManager::changeBackground($_POST['name'], $_POST['id']);
+      break;
 
-  if ($_POST['mode'] == 'deleteForm') {
-    echo "deleteForm";
-    echo formManager::deleteForm($_POST['id']);
-    exit();
-  }
+    case 'getForm':
+      echo formManager::getForm($_POST['id'], $_POST['formHash']);
+      break;
 
-  if ($_POST['mode'] == 'submitAnswer') {
-    echo formManager::submitAnswer(
-      $_POST['uid'],
-      $_POST['id'],
-      $_POST['formHash'],
-      $_POST['userIp'],
-      $_POST['answers'],
-      $_POST['form']
-    );
-    exit();
-  }
+    case 'getLinkHash':
+      echo formManager::getFormLinkHash($_POST['id']);
+      break;
 
-  if ($_POST['mode'] == 'getFormAnswers') {
-    echo formManager::getFormAnswers($_POST['id'], $_POST['formHash']);
-    exit();
+    case 'newLinkHash':
+      echo formManager::generateNewLinkHash($_POST['id']);
+      break;
+
+    case 'deleteForm':
+      echo "deleteForm";
+      echo formManager::deleteForm($_POST['id']);
+      break;
+
+    case 'submitAnswer':
+      echo formManager::submitAnswer($_POST['uid'], $_POST['id'], $_POST['formHash'], $_POST['userIp'], $_POST['answers'], $_POST['form']);
+      break;
+
+    case 'deleteAnswer':
+      echo formManager::deleteAnswer($_POST['id']);
+      break;
+
+    case 'getFormAnswers':
+      echo formManager::getFormAnswers($_POST['id'], $_POST['formHash']);
+      break;
+
+    case 'generateXlsx':
+      echo 'ASD';
+      echo formManager::generateXlsx($_POST['id']);
+      echo $_POST['value'];
+      break;
+
+    default:
+      // Optionally handle unknown mode
+      echo "Unknown mode";
+      break;
   }
+  exit();
 }
 
 ?>

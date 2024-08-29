@@ -25,7 +25,7 @@ if (isset($_POST['method'])){
         //Encode useritem as json
         $damageItem=array(
         [
-            'UID' => $_POST['userItems'],
+            'uid' => $_POST['userItems'],
             'name' => $_POST['itemName']]
         );
 
@@ -43,12 +43,6 @@ if (isset($_POST['method'])){
             exit();
         }
 
-        //If not successful
-        if(!$result){
-            //echo the results error
-            echo $result;
-        }
-
         $subject = 'Sérülés - '.$_POST['userItems'];
        /* Set the mail message body. */
         $content = $_SESSION['fullName'].' sérülést jelentett be a(z) <strong>'.$_POST['userItems'].'</strong> tárgyon! <br>Leírás: '.$_POST['description'];
@@ -56,21 +50,21 @@ if (isset($_POST['method'])){
         $content .= '<br><button><a href="https://io.arpadmedia.hu/uploads/images/'.$_POST['zip-file'].'.zip">Képek letöltése</a></button>
                 ';
         /* Finally send the mail using MailService */
-        MailService::sendContactMail('MediaIO-sérülésbejelntő','arpadmedia.io@gmail.com',$subject,$content);
+        MailService::sendContactMail('arpadmedia.io@gmail.com',$subject,$content);
         echo 200;
         exit();
     }
 
     if($_POST['method']=='getServiceItems'){
-        $workID=$_POST['workID'];
-        $n=$_POST["user"];
+        //$workID=$_POST['workID'];
+        //$n=$_POST["user"];
         $sql="SELECT UID, Nev FROM leltar WHERE RentBy='Service';";
         $connection=Database::runQuery_mysqli();
         //Store result in array
         $resultItems=array();
         if ($result = $connection->query($sql)) {
           while ($row = $result->fetch_assoc()) {
-            $resultItems[] = array('UID'=> $row['UID'],'name'=> $row['Nev']);
+            $resultItems[] = array('uid'=> $row['UID'],'name'=> $row['Nev']);
           }
           echo(json_encode($resultItems));
         }else{
@@ -80,9 +74,9 @@ if (isset($_POST['method'])){
     }
 
     if($_POST['method']=='returnServiceItem'){
-        $uid=$_POST['UID'];
+        $uid=$_POST['uid'];
         $dataArray=array();
-        array_push($dataArray,array("UID" => $uid,"name" => $_POST['itemName']));
+        array_push($dataArray,array("uid" => $uid,"name" => $_POST['itemName']));
         $sql="UPDATE leltar SET RentBy=NULL, Status=1 WHERE UID='".$uid."';";
         $sql.="INSERT INTO takelog VALUES (NULL, '".date("Y/m/d H:i:s")."','Service','".json_encode($dataArray)."','IN',1,'Service');";
         $connection=Database::runQuery_mysqli();

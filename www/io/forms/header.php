@@ -19,6 +19,8 @@
   <title>Arpad Media IO</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <link rel="stylesheet" href="style.scss">
+  <script src="../utility/toastManager.js" crossorigin="anonymous" defer></script>
 
 </head>
 <div class="UI_loading"><img class="loadingAnimation" src="../utility/mediaIO_loading_logo.gif"></div>

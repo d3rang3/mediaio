@@ -1,14 +1,11 @@
-<html>
+
 <?php
 include "header.php";
 ?>
 
+<h3 class="rainbow">Elfelejtett jelszó pótlása</h3>
+
 <table class="logintable">
-  <tr>
-    <td>
-      <h1>Elfelejtett jelszó pótlása</h1>
-    </td>
-  </tr>
   <?php
   if (isset($_GET['error'])) {
     if ($_GET['error'] == 'emptyField') {
@@ -41,10 +38,10 @@ include "header.php";
     </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="email" name="emailAddr" placeholder="e-mail" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="text" name="userName" placeholder="felhasználónév" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><br><button class="btn btn-dark" id="submitPwdCh1" align=center type="submit" name="pwdLost-submit" required>Token küldése</button></td>
     </tr>
@@ -67,21 +64,21 @@ include "header.php";
     </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="text" name="token" placeholder="token" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="text" name="userName" placeholder="felhasználónév" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="email" name="emailAddr" placeholder="e-mail" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="password" name="chPwd-1" placeholder="új jelszó" required></td>
-    </tr> <br>
+    </tr>
     <tr>
       <td><input class="form-control mb-2 mr-sm-2" type="password" name="chPwd-2" placeholder="új jelszó még egyszer" required></td>
-    </tr> <br>
+    </tr>
     <tr>
-      <td><br><button class="btn btn-dark" id="submitPwdCh2" align=center type="submit" name="pwdLost-change-submit">Csere</button></td>
+      <td><button class="btn btn-dark" id="submitPwdCh2" align=center type="submit" name="pwdLost-change-submit">Csere</button></td>
     </tr>
     <tr>
       <td>
@@ -115,7 +112,8 @@ include "header.php";
 </script>
 <style>
   .logintable {
-    width: 30%;
+    max-width: 300px;
+    width: 100%;
     text-align: center;
     margin: 0 auto;
   }

@@ -2,49 +2,74 @@
 namespace Mediaio;
 
 require_once __DIR__ . '/Database.php';
-require_once __DIR__ . '/Core.php';
-require_once __DIR__ . '/Mailer.php';
-use Mediaio\Core;
 use Mediaio\Database;
-use Mediaio\MailService;
 
 error_reporting(E_ERROR | E_PARSE);
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 
 class ProjectMailer
 {
+    private static $schema = "am_projects";
     public static function sendMail($to, $subject, $message)
     {
-        $mail = new MailService();
-        return $mail->sendContactMail(null, $to, $subject, $message);
+        require_once __DIR__ . '/Mailer.php';
+        MailService::sendContactMail($to, $subject, $message);
     }
 
     public static function sendNewProjectMail($project_id, $member)
     {
-        $connection = Database::runQuery_mysqli();
-        // Send an email to the new member
-        $sql = "SELECT `email`, `firstName` AND  FROM `users` WHERE `idUsers`=" . $member . ";";
+        $connection = Database::runQuery_mysqli(self::$schema);
+        $sql = "SELECT `Name`,`managerUID` FROM `projects` WHERE `ID`='" . $project_id . "';";
         $result = $connection->query($sql);
-        $email = $result->fetch_assoc()['email'];
-        $name = $result->fetch_assoc()['firstName'];
 
-        $sql = "SELECT `Name` FROM `projects` WHERE `ID`=" . $_POST['id'] . ";";
-        $result = $connection->query($sql);
-        $projectName = $result->fetch_assoc()['Name'];
-
+        $row = $result->fetch_assoc();
+        $projectName = $row['Name'];
+        $managerUID = $row['managerUID'];
         $connection->close();
 
-        $message = "Kedves " . $name . "! \n Hozzá lettél adva a " . $projectName . " projekthez.";
-        $subject = "Hozzá lettél adva a " . $projectName . " projekthez.";
+        $connection = Database::runQuery_mysqli();
+        // Send an email to the new member
+        $sql = "SELECT `emailUsers`, `firstName` FROM `users` WHERE `idUsers`='" . $member . "';";
+        $result = $connection->query($sql);
+        $row = $result->fetch_assoc();
+        $email = $row['emailUsers'];
+        $name = $row['firstName'];
+
+
+        $sql = "SELECT `firstName`, `lastName` FROM `users` WHERE `idUsers`=" . $managerUID . ";";
+        $result = $connection->query($sql);
+        $row = $result->fetch_assoc();
+        $managerName = $row['lastName'] . " " . $row['firstName'];
+        $connection->close();
+    
+
+        //E-mail küldése a felhasználónak
+        $message = '
+                    <html>
+                    <head>
+                    <title>Árpad Média IO</title>
+                    </head>
+                    <body>
+                    <h3>Kedves ' . $name . '!</h3>
+                    <p>Hozzá lettél adva a(z) "' . $projectName . '" projekthez.</p>
+                    
+                    <h5>Projekt vezető: <br> ' . $managerName . '</h5>
+                    <i>Ez egy tájékoztató üzenet, kérlek ne válaszolj rá!</i>
+                    </body>
+                    </html>
+                    ';
+        $subject = "Hozzá lettél adva a(z) " . $projectName . " projekthez.";
 
         self::sendMail($email, $subject, $message);
     }
 
-    public static function sendProjectDeadlineMailToAll($project_id)
+    /* public static function sendProjectDeadlineMailToAll($project_id)
     {
-        $connection = Database::runQuery_mysqli();
+        $connection = Database::runQuery_mysqli(self::$schema);
 
         // Get the project name and deadline
         $sql = "SELECT `Name`, `Deadline` FROM `projects` WHERE `ID`=" . $project_id . ";";
@@ -52,6 +77,9 @@ class ProjectMailer
         $project = $result->fetch_assoc();
         $projectName = $project['Name'];
         $deadline = $project['Deadline'];
+        $connection->close();
+
+        $connection = Database::runQuery_mysqli();
 
         // Get the members of the project
         $sql = "SELECT `idUsers` FROM `projectmembers` WHERE `ProjectID`=" . $project_id . ";";
@@ -70,16 +98,17 @@ class ProjectMailer
 
         // Send an email to all members
         foreach ($members as $member) {
-            $sql = "SELECT `email`, `firstName` FROM `users` WHERE `idUsers`=" . $member[0] . ";";
+            $sql = "SELECT `emailUsers`, `firstName` FROM `users` WHERE `idUsers`=" . $member[0] . ";";
             $result = $connection->query($sql);
-            $email = $result->fetch_assoc()['email'];
-            $name = $result->fetch_assoc()['firstName'];
+            $row = $result->fetch_assoc();
+            $email = $row['emailUsers'];
+            $name = $row['firstName'];
 
             $message .= "Kedves " . $name . "! \n" . $message;
             self::sendMail($email, $subject, $message);
         }
 
         $connection->close();
-    }
+    } */
 
 }

@@ -69,8 +69,6 @@ error_reporting(E_ERROR | E_PARSE);
     <!-- End of Clear Modal -->
 
     <h2 class="rainbow">Kérdőívek</h2>
-    <?php if (in_array("admin", $_SESSION["groups"])) {
-  } ?>
     <div class="container">
       <div class="row" id="admin_opt">
 

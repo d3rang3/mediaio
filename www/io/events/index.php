@@ -1,47 +1,16 @@
 <?php
 session_start();
-if (!isset($_SESSION['userId'])) {
-  header("Location: ../index.php?error=AccessViolation");
+if (!isset($_SESSION["userId"])) {
+  echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
+  exit();
 }
-#echo $_SESSION['color'];
+
+
+include ("header.php");
 ?>
-<html lang='en'>
 
-<head>
-  <title>Arpad Media IO</title>
-  <link rel="icon" type="image/x-icon" href="../logo.ico">
-  <link href='../style/common.scss' rel='stylesheet' />
-  <div class="UI_loading"><img class="loadingAnimation" src="../utility/mediaIO_loading_logo.gif"></div>
-  <meta charset='utf-8' />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-    crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css"
-    integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
-  <script type="text/javascript" src="https://code.jquery.com/jquery-latest.min.js"></script>
-  <script src="../utility/_initMenu.js" crossorigin="anonymous"></script>
-  <link href='./core/main.css' rel='stylesheet' />
-  <link href='./daygrid/main.css' rel='stylesheet' />
-  <link href='./timegrid/main.css' rel='stylesheet' />
-  <script src='./interaction/main.css'></script>
+<body>
 
-  <script src='./core/main.js'></script>
-  <script src='./daygrid/main.js'></script>
-  <script src='./timegrid/main.js'></script>
-  <script src='./interaction/main.js'></script>
-  <script src="./moment/main.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="./defaultCalendarRender.js"></script>
-  <!-- HOZZÁADÁS MODAL -->
-</head>
-<script>
-  $(window).on('load', function () {
-    $(".UI_loading").fadeOut("slow");
-  });
-</script>
-<?php if (isset($_SESSION["userId"])) { ?>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="../index.php">
       <img src="../utility/logo2.png" height="50">
@@ -79,9 +48,6 @@ if (!isset($_SESSION['userId'])) {
       </form>
     </div>
   </nav>
-<?php } ?>
-
-<body>
 
   <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
     aria-hidden="true">
@@ -160,12 +126,11 @@ if (!isset($_SESSION['userId'])) {
   </div>
 
 
-  <table class="table table-bordered" style="height: 85%">
+  <table class="table table-bordered" style="height: 85dvh">
     <tr>
-      <td width=100%>
-        <div id='calendar'>
+      <td style="height: 85dvh">
+        <div id='calendar'></div>
       </td>
-      </div>
   </table>
 
 </body>
@@ -173,15 +138,6 @@ if (!isset($_SESSION['userId'])) {
 </html>
 
 <script>
-  function openNav() {
-    document.getElementById("sideHelp1").style.width = "250px";
-  }
-
-  /* Set the width of the side navigation to 0 */
-  function closeNav() {
-    document.getElementById("sideHelp1").style.width = "0";
-  }
-
   window.onload = function () {
     //$('#WIPModal').modal()
     display = document.querySelector('#time');

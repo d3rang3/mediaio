@@ -137,7 +137,7 @@ require_once("../header.php");
         //Iterate through items
         for (var i = 0; i < items.length; i++) {
           //Append row to table
-          $("#serviceItemsTable").append("<tr><th scope='row'>" + items[i].UID + "</th><td>" + items[i].name + "</td><td><button class='btn btn-success' onclick='repairItem(" + '"' + items[i].UID + '"' + "," + '"' + items[i].name + '"' + ")'><i class='fas fa-check'></i></button></td></tr>");
+          $("#serviceItemsTable").append("<tr><th scope='row'>" + items[i].uid + "</th><td>" + items[i].name + "</td><td><button class='btn btn-success' onclick='repairItem(" + '"' + items[i].uid + '"' + "," + '"' + items[i].name + '"' + ")'><i class='fas fa-check'></i></button></td></tr>");
         }
       }
     });
@@ -151,7 +151,7 @@ require_once("../header.php");
       url: "./damage-backend.php",
       type: "POST",
       data: {
-        "method": "returnServiceItem", "UID": uid, "itemName": itemName
+        "method": "returnServiceItem", "uid": uid, "itemName": itemName
       },
       success: function (data) {
         console.log(data);

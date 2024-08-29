@@ -3,15 +3,6 @@ session_start();
 include ("header.php");
 include ("../translation.php"); ?>
 
-<html>
-<?php
-if (!isset($_SESSION["userId"])) {
-   echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
-   exit();
-}
-?>
-
-
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
    <a class="navbar-brand" href="./index.php">
       <img src="../utility/logo2.png" height="50">
@@ -80,9 +71,25 @@ if (!isset($_SESSION["userId"])) {
       refreshProjects();
    });
 
-   setInterval(function () {
+   // Check for updates every minute
+   let lastUpdate = new Date().getTime();
+
+   setInterval(async () => {
+      // Check if there is anything updated
+      if (await checkForUpdates(lastUpdate) == 'false') {
+         console.log('No updates found');
+         return;
+      }
+
+      if ($('.modal').hasClass('show') || document.querySelectorAll('.dragging').length > 0) {
+         return;
+      }
+      // Hide all tooltips
+      document.querySelectorAll('.tooltip').forEach(e => e.style.display = 'none');
+
+
       refreshProjects();
-      simpleToast("Projekt frissítve");
+      simpleToast("Projekt frissítve!");
    }, 60000);
 
    async function refreshProjects() {
@@ -97,10 +104,11 @@ if (!isset($_SESSION["userId"])) {
       spinner.innerHTML = '<span class="visually-hidden">Loading...</span>';
       projectHolder.appendChild(spinner);
 
-      await generateBigView(project);
+      await generateMobileView(project);
       //TODO: ORDER FUNCTIONALITY NEEDED HERE
       await toolTipRender();
 
+      lastUpdate = new Date().getTime();
       //Remove spinner
       projectHolder.removeChild(spinner);
    }

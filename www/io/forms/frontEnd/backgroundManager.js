@@ -32,14 +32,14 @@ function changeBackground(id, clear = false) {
     }
 
 
-    var fileInput = document.getElementById("background_img");
+    let fileInput = document.getElementById("background_img");
     if (fileInput.files.length === 0) {
         console.log("No file selected");
         return;
     }
 
-    var file = document.getElementById("background_img").files[0];
-    var formData = new FormData();
+    let file = document.getElementById("background_img").files[0];
+    let formData = new FormData();
     formData.append('fileToUpload', file);
     formData.append('formId', id);
     formData.append('mode', 'uploadBackground');

@@ -1,7 +1,7 @@
 // AUDIO
 
-let scan_succes_sfx = new Audio('utility/qr_scanner/sounds/scan_succes.mp3');
-let scan_fail_sfx = new Audio('utility/qr_scanner/sounds/scan_fail.mp3');
+let scan_succes_sfx = new Audio('../utility/qr_scanner/sounds/scan_succes.mp3');
+let scan_fail_sfx = new Audio('../utility/qr_scanner/sounds/scan_fail.mp3');
 
 //Scanner
 let macroCam;
@@ -84,58 +84,48 @@ const stopScanner = () => {
 
 // Start scanner on button click
 
-let available_cams;
 
 function showScannerModal() {
    if (ExternalScanEnabled) {
       $('#scanner_Modal').modal('show');
-      setTimeout(function () {
-         $('#ext_scan_input').focus();
-      }, 500);
-   }
-   else if (QrReaderStarted) {
+      setTimeout(() => $('#ext_scan_input').focus(), 500);
+   } else if (QrReaderStarted) {
       startScanner(null);
       $('#scanner_Modal').modal('show');
-   }
-   else {
+   } else {
       Html5Qrcode.getCameras().then(devices => {
-         available_cams = devices;
-         for (i = 0; i < available_cams.length; i++) {
-            if (available_cams[i].label.toLowerCase().includes("dual") == false) {
-
-               $('#av_cams').append('<li><a class="dropdown-item" href="#" onclick="switchCamera(\'' + available_cams[i].id + '\');">' + available_cams[i].label + '</a></li>');
-            }
-         }
-         $('#scanner_Modal').modal('show');
-         macroCam = available_cams.find(cam => cam.label.toLowerCase().includes("ultra wide"));
-         if (macroCam == undefined) {
-            macroCam = null;
-            console.log("No telephoto camera found, starting default camera");
-         }
-         else {
-            macroCam = macroCam.id;
-            console.log("Macro camera found: " + macroCam.label);
-         }
-
-         startScanner(macroCam).then((ignore) => {
-            settings = QrReader.getRunningTrackSettings();
-            // If zoom available, display button
-            if ("zoom" in settings == false) {
-               console.log("Zoom unavailable");
-               $('#zoom_btn').remove();
-            }
-            if ("torch" in settings == false) {
-               console.log("Torch unavailable");
-               $('#torch_btn').remove();
-            }
+         const availableCams = devices.filter(cam => !cam.label.toLowerCase().includes("dual"));
+         document.getElementById('av_cams').innerHTML = "";
+         availableCams.forEach(cam => {
+            let listItem = document.createElement('li');
+            listItem.classList.add('dropdown-item');
+            listItem.innerHTML = cam.label;
+            listItem.onclick = () => switchCamera(cam.id, availableCams);
+            document.getElementById('av_cams').appendChild(listItem);
          });
+         $('#scanner_Modal').modal('show');
+         let macroCam = availableCams.find(cam => cam.label.toLowerCase().includes("ultra wide"));
+         let macroCamId = macroCam ? macroCam.id : null;
+         setTimeout(() => {
+            startScanner(macroCamId).then(() => {
+               const settings = QrReader.getRunningTrackSettings();
+               if (("zoom" in settings)) {
+                  console.log("Zoom unavailable");
+                  document.getElementById('zoom_btn').style.display = "block";
+               }
+               if (("torch" in settings)) {
+                  console.log("Torch unavailable");
+                  document.getElementById('torch_btn').style.display = "block";
+               }
+            });
+         }, 500);
       });
    }
-
 }
 
-function switchCamera(nextCamId) {
+function switchCamera(nextCamId, available_cams) {
    stopScanner().then((ignore) => {
+      console.log(available_cams);
       let nextCam = available_cams.find(cam => cam.id === nextCamId);
       if (nextCam) {
          console.log("Switching camera to: " + nextCam.label);
