@@ -193,12 +193,16 @@ class formManager
     }
   }
 
-  static function submitAnswer($uid, $id, $formHash, $ip, $answers, $form)
+  static function submitAnswer($uid, $id, $formHash, $ip, $answers)
   {
     // Prevent injection
     $answers = json_decode($answers, true);
     array_walk_recursive($answers, function (&$value) {
-      $value = htmlspecialchars($value);
+      if (is_bool($value)) {
+        $value = $value ? true : false; // Preserve boolean values
+      } else {
+        $value = htmlspecialchars($value);
+      }
     });
     $answers = json_encode($answers, JSON_UNESCAPED_UNICODE);
     if ($id == -1) {
@@ -207,9 +211,9 @@ class formManager
 
     $connection = Database::runQuery_mysqli();
 
-    $sql = "INSERT INTO `formanswers` (`ID`, `FormID`, `userID`, `userIp`, `UserAnswers`, `FormState`) VALUES (NULL, ?, ?, ?, ?, ?);";
+    $sql = "INSERT INTO `formanswers` (`ID`, `FormID`, `userID`, `userIp`, `UserAnswers`) VALUES (NULL, ?, ?, ?, ?);";
     $stmt = $connection->prepare($sql);
-    $stmt->bind_param("sssss", $id, $uid, $ip, $answers, $form);
+    $stmt->bind_param("ssss", $id, $uid, $ip, $answers);
 
     $stmt->execute();
 
@@ -316,7 +320,7 @@ if (isset($_POST['mode'])) {
       break;
 
     case 'submitAnswer':
-      echo formManager::submitAnswer($_POST['uid'], $_POST['id'], $_POST['formHash'], $_POST['userIp'], $_POST['answers'], $_POST['form']);
+      echo formManager::submitAnswer($_POST['uid'], $_POST['id'], $_POST['formHash'], $_POST['userIp'], $_POST['answers']);
       break;
 
     case 'deleteAnswer':
@@ -328,9 +332,7 @@ if (isset($_POST['mode'])) {
       break;
 
     case 'generateXlsx':
-      echo 'ASD';
       echo formManager::generateXlsx($_POST['id']);
-      echo $_POST['value'];
       break;
 
     default:

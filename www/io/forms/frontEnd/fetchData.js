@@ -52,12 +52,11 @@ async function fetchAnswers(formId, formHash) {
             window.location.href = "index.php?invalidID";
         }
 
-        let submission = JSON.parse(response);
-        submission.forEach(item => formAnswers.push(item));
+        formAnswers = JSON.parse(response);
 
         let dropdown = document.getElementById("answers_dropdown");
 
-        submission.forEach((item, i) => {
+        formAnswers.forEach((item, i) => {
             let id = item.ID;
 
             let li = document.createElement("li");

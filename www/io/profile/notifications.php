@@ -17,7 +17,7 @@ global $notif_settings;
 ?>
 
 <!-- Info toast -->
-<div class="toast-container bottom-0 start-50 translate-middle-x p-3" style="z-index: 9999;">
+<div class="toast-container fixed-bottom start-50 translate-middle-x p-3" style="z-index: 9999;">
   <div class="toast" id="infoToast" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="toast-header">
       <img src="../logo.ico" class="rounded me-2" alt="..." style="height: 20px; filter: invert(1);">

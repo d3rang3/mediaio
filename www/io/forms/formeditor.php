@@ -1,7 +1,7 @@
 <?php
 session_start();
-include ("header.php");
-include ("../translation.php");
+include("header.php");
+include("../translation.php");
 
 if (!isset($_SESSION["userId"])) {
    echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
@@ -35,7 +35,7 @@ if (!in_array("admin", $_SESSION["groups"])) {
       </ul>
       <ul class="navbar-nav ms-auto navbarPhP">
          <li>
-            <a class="nav-link disabled timelock" href="#"><span id="time"> 60:00 </span>
+            <a class="nav-link disabled timelock" href="#"><span id="time"> 30:00 </span>
                <?php echo ' ' . $_SESSION['UserUserName']; ?>
             </a>
          </li>
@@ -47,7 +47,7 @@ if (!in_array("admin", $_SESSION["groups"])) {
             window.onload = function () {
                display = document.querySelector('#time');
                var timeUpLoc = "../utility/userLogging.php?logout-submit=y"
-               startTimer(display, timeUpLoc, 60);
+               startTimer(display, timeUpLoc, 30);
             };
          </script>
       </form>
@@ -59,10 +59,11 @@ if (!in_array("admin", $_SESSION["groups"])) {
          class='fas fa-align-left fa-lg' style="color: fff"></i></button>
    <button class="btn" onclick="window.location.href = 'viewform.php?formId=' + <?php echo $_GET['formId'] ?>"
       style="color: fff"><i class="fas fa-eye"></i></button>
+   <button class="btn" onclick="saveFormElements(false)"><i class="fas fa-save" style="color: #ffffff;"></i></button>
 </div>
 
 
-<?php include ("modals.php"); ?>
+<?php include("modals.php"); ?>
 
 
 
@@ -112,13 +113,11 @@ if (!in_array("admin", $_SESSION["groups"])) {
 
                <!-- Fájl -->
                <li class="dropdown-divider"></li>
-               <li><a class="dropdown-item" href="#" onclick="addFormElement('fileUpload')"><i
-                        class="fas fa-file fa-lg"></i> Fájl feltöltés</a>
+               <li><a class="dropdown-item" href="#" onclick="/*addFormElement('fileUpload')*/"><i
+                        class="fas fa-file fa-lg"></i><i>Fájl feltöltés (fejlesztés alatt)</i></a>
                </li>
             </ul>
          </div>
-         <button class="btn btn-primary" onclick="saveFormElements(false)">Mentés</button>
-         <!-- <button class="btn btn-danger" data-bs-target="#delete_Modal" data-bs-toggle="modal"><i class='fas fa-trash-alt fa-lg'></i></button> -->
          <button class="btn" data-bs-target="#settings_Modal" data-bs-toggle="modal"><i
                class="fas fa-sliders-h fa-lg"></i></button>
       </div>
@@ -224,15 +223,14 @@ if (!in_array("admin", $_SESSION["groups"])) {
             showLink(formHash);
          } else {
             showLink(formHash, false);
-            }
+         }
       });
    });
 
    //Function to check if question id is used
    function checkIdNotUsed(id) {
-      var elements = document.getElementById("editorZone").getElementsByClassName("form-member");
-      for (var j = 0; j < elements.length; j++) {
-      if (elements[j].id.split("-")[1] == id) {
+      for (var j = 0; j < formElements.length; j++) {
+         if (formElements[j].id == id) {
             id++;
             checkIdNotUsed(id);
          }
@@ -246,7 +244,7 @@ if (!in_array("admin", $_SESSION["groups"])) {
       i = checkIdNotUsed(i); //Check if id is used
       console.log("Adding form element: " + type);
       var place = document.getElementById("editorZone").getElementsByClassName("form-member").length + 1; //Get the place of the new element
-      
+
       let newElement = new FormElement(i, type, "", "", false, []);
       let container = document.getElementById("editorZone");
       newElement.createElement(container, "editor");

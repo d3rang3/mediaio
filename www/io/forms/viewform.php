@@ -4,8 +4,7 @@ include ("header.php");
 include ("../translation.php"); ?>
 <html>
 
-<script src="frontEnd/elementGenerator.js" type="text/javascript"></script>
-<script src="frontEnd/formSubmission.js" type="text/javascript"></script>
+<script src="frontEnd/formCookies.js" type="text/javascript"></script>
 <script src="frontEnd/fetchData.js" type="text/javascript"></script>
 <script src="frontEnd/formElements.js" type="text/javascript"></script>
 
@@ -98,12 +97,8 @@ include ("../translation.php"); ?>
                      window.location.href = "formeditor.php?form=" + formHash;
                   }
                }
-               console.log(document.getElementById("form_name"));
-               console.log(editForm);
                document.getElementById("form_name").appendChild(editForm);
             <?php } ?>
-
-            reloadUserInput();
          }
 
          loadPageAsync(formId, formHash);

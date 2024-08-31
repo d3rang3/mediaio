@@ -11,13 +11,14 @@ class FormElement {
     answer = {};
 
     // Methods:
-    constructor(id, type, question, details, required, options) {
+    constructor(id, type, question, details, required, options, answer = {}) {
         this.id = id;
         this.type = type;
         this.question = question;
         this.details = details;
         this.required = required;
         this.options = options;
+        this.answer = answer;
     }
 
     createElement(container, state) {
@@ -192,7 +193,6 @@ class FormElement {
         const longTextInput = document.createElement('textarea');
         longTextInput.classList.add("form-control", "mb-3");
         longTextInput.placeholder = 'Hosszú szöveg';
-        longTextInput.disabled = true;
 
         if (state == "editor") {
             longTextInput.disabled = true;
@@ -282,23 +282,21 @@ class FormElement {
             checkbox.type = this.type;
             checkbox.classList.add("form-check-input");
             checkbox.classList.add("userInput");
-            if (checkbox.type === "radio") {
-                checkbox.name = `${this.id}-radio`;
-            }
+            checkbox.name = checkbox.type === "radio" ? `${this.id}-radio` : `${this.id}-checkbox`;
             if (state === "answer") {
                 checkbox.disabled = true;
-                if (answer === 1) {
+                if (this.answer.includes(option)) {
                     checkbox.checked = true;
                 }
             }
             checkbox.setAttribute('data-name', option);
-            checkbox.id = index;
+            checkbox.id = `${this.id}-option-${index}`;
             div.appendChild(checkbox);
 
             // Create label for checkbox or radio
             const Qlabel = document.createElement("label");
             Qlabel.classList.add("form-check-label");
-            Qlabel.htmlFor = index;
+            Qlabel.htmlFor = `${this.id}-option-${index}`;
             Qlabel.textContent = option ? option : "Opció";
             div.appendChild(Qlabel);
         }
@@ -346,6 +344,13 @@ class FormElement {
                 dropdownHolder.appendChild(this.addNewDropdownOption(option, index, state));
             }
         });
+
+        if (state == "answer") {
+            const optionToSelect = Array.from(dropdownButton.options).find(option => option.value === this.answer);
+            if (optionToSelect) {
+                optionToSelect.selected = true;
+            }
+        }
 
 
         if (state == "editor") {
@@ -398,7 +403,7 @@ class FormElement {
             const dropdown = document.createElement("option");
             dropdown.value = option ? option : "Opció";
             dropdown.innerHTML = option ? option : "Opció";
-            dropdown.classList.add("userInput");
+            //dropdown.classList.add("userInput");
             return dropdown;
         }
     }
@@ -482,6 +487,9 @@ class FormElement {
             input.classList.add("userInput");
             if (state == "answer") {
                 input.disabled = true;
+                if (this.answer[index].answers[j] == '1') {
+                    input.checked = true;
+                }
             }
 
             column.appendChild(input);
@@ -502,7 +510,7 @@ class FormElement {
             input.classList.add("form-control", "details-text");
             input.placeholder = "Sor";
             input.value = option ? option : "";
-            
+
             const deleteButton = document.createElement("button");
             deleteButton.classList.add("btn", "btn-close", "btn-sm");
             deleteButton.onclick = function () {
@@ -537,7 +545,7 @@ class FormElement {
             div.remove();
         };
 
-        
+
         div.appendChild(input);
         div.appendChild(deleteButton);
         return div;
@@ -626,6 +634,44 @@ class FormElement {
         return fileInput;
     }
 
+    // Setters
+    setAnswer(answer) {
+        this.answer = answer;
+    }
+
+    loadUserinput() {
+        if (this.type === 'email' || this.type === 'shortText' || this.type === 'longText' || this.type === 'date') {
+            document.getElementById(`${this.type}-${this.id}`).querySelector('input').value = this.answer;
+        }
+        else if (this.type === 'radio' || this.type === 'checkbox') {
+            document.querySelectorAll(`#${this.type}-${this.id} .userInput`).forEach(input => {
+                const dataName = input.getAttribute('data-name');
+                if (this.type === 'radio') {
+                    // For radio buttons, only one option should be selected
+                    input.checked = dataName === this.answer[0];
+                } else if (this.type === 'checkbox') {
+                    // For checkboxes, multiple options can be selected
+                    input.checked = this.answer.includes(dataName);
+                }
+            });
+        } else if (this.type === 'dropdown') {
+            const selectElement = document.querySelector(`#${this.type}-${this.id} .userInput`);
+            if (selectElement) {
+                const optionToSelect = Array.from(selectElement.options).find(option => option.value === this.answer);
+                if (optionToSelect) {
+                    optionToSelect.selected = true;
+                }
+            }
+        }
+        else if (this.type === 'scaleGrid') {
+            document.querySelectorAll(`#${this.type}-${this.id} .grid-row`).forEach((row, i) => {
+                row.querySelectorAll('.userInput').forEach((input, j) => {
+                    input.checked = this.answer[i].answers[j];
+                });
+            });
+        }
+    }
+
     // Getters
     getQuestion() {
         return document.getElementById(`${this.type}-${this.id}`).querySelector('input[type="text"]').value;
@@ -660,6 +706,32 @@ class FormElement {
             return "";
         }
     }
+
+    getAnswer() {
+        if (this.type === 'email' || this.type === 'shortText' || this.type === 'longText' || this.type === 'date') {
+            return document.getElementById(`${this.type}-${this.id}`).querySelector('input').value;
+        } else if (this.type === 'radio' || this.type === 'checkbox') {
+            const answer = [];
+            document.querySelectorAll(`#${this.type}-${this.id} .userInput`).forEach(input => {
+                if (input.checked) {
+                    answer.push(input.getAttribute('data-name'));
+                }
+            });
+            return answer;
+        } else if (this.type === 'dropdown') {
+            return document.querySelector(`#${this.type}-${this.id} .userInput`).value
+        } else if (this.type === 'scaleGrid') {
+            const answer = [];
+            document.querySelectorAll(`#${this.type}-${this.id} .grid-row`).forEach(row => {
+                const rowAnswer = [];
+                row.querySelectorAll('.userInput').forEach(input => {
+                    rowAnswer.push(input.checked ? 1 : 0);
+                });
+                answer.push({ answers: rowAnswer });
+            });
+            return answer;
+        }
+    }
 }
 
 
@@ -674,12 +746,11 @@ async function loadPage(form, state) {
     const formHash = form.LinkHash;
 
 
-    if (state == "fill" || state == "answers") {
+    if (state == "fill") {
         //Set form Name and header
         document.getElementById("form_name").innerHTML = formName;
-        if (state == "fill") {
-            document.getElementById("form_header").innerHTML = form.Header.replace(/\n/g, "<br>");
-        }
+        document.getElementById("form_header").innerHTML = form.Header.replace(/\n/g, "<br>");
+
     }
     if (state == "editor") {
         //Set form Name
@@ -687,7 +758,7 @@ async function loadPage(form, state) {
         document.getElementById("description").value = form.Header;
 
         //Set form state
-        document.getElementById("formState").value = formStatus;
+        document.getElementById("isAcceptingAnswers").checked = formStatus;
 
         //Set form access
         document.getElementById("accessRestrict").value = formAccess;
@@ -706,33 +777,35 @@ async function loadPage(form, state) {
             document.querySelector('[data-setting="SingleAnswer"]').checked = true;
         }
     }
+
+    // Set background
+    const style = document.createElement('style');
+    style.innerHTML = `
+    body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-image: url(../forms/backgrounds/${form.Background});
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    }`;
+    document.head.appendChild(style);
+
     if (state == "success") {
         //Set form Name and header if form is closed
         document.getElementById("form_name").innerHTML = "Sikeres leadás!";
         document.getElementById("form_header").innerHTML = "Köszönjük, hogy kitöltötte a kérdőívet!";
+        return;
     }
     let formContainer = document.getElementById("form-body");
     if (state == "editor") {
         formContainer = document.getElementById("editorZone");
     }
 
-
-    // Set background
-    const style = document.createElement('style');
-    style.innerHTML = `
-    body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        background-image: url(../forms/backgrounds/${form.Background});
-        background-size: cover;
-        background-position: center;
-        z-index: -1;
-    }`;
-    document.head.appendChild(style);
 
     console.log(formData);
 
@@ -754,9 +827,12 @@ async function loadPage(form, state) {
         submit.type = "submit";
         submit.innerHTML = "Leadás";
         formContainer.appendChild(submit);
-    }
-    if (state == "answers") {
-        return formElements;
+
+        try {
+            reloadUserInput();
+        } catch (e) {
+            console.log("No user input to reload");
+        }
     }
 }
 
@@ -766,20 +842,33 @@ function serializeFormElements(formElements) {
         return {
             id: element.id,
             type: element.type,
-            question: element.getQuestion(),
-            details: element.getDetails(),
-            required: element.getRequired(),
-            options: element.getOptions(),
-            //answer: element.answer
+            question: element.getQuestion("editor"),
+            details: element.getDetails("editor"),
+            required: element.getRequired("editor"),
+            options: element.getOptions("editor"),
+            //answer: element.getAnswer()
         };
     });
 }
 
 
-
 async function saveFormElements(auto) {
-    //Get all elements
-    //const container = document.getElementById("editorZone");
+    // Safety check for conflicting IDs
+    const formElementIds = formElements.map(element => element.id);
+    if (new Set(formElementIds).size !== formElementIds.length) {
+        // Fix conflicting IDs
+        formElements.forEach((element, index) => {
+            element.id = index;
+
+            // Update the ID of the corresponding element in the DOM
+            const elementDiv = document.getElementById(`${element.type}-${element.id}`);
+
+            if (elementDiv) {
+                elementDiv.id = `${element.type}-${element.id}`;
+            }
+
+        });
+    }
 
     const formElementsToSave = serializeFormElements(formElements);
     const formElementsJson = JSON.stringify(formElementsToSave);
@@ -812,5 +901,64 @@ async function saveFormElements(auto) {
         everythingSaved = true;
     } else {
         errorToast("Sikertelen mentés!");
+    }
+}
+
+
+// FORM SUBMISSION
+
+function submitFormElements(formElements) {
+    return formElements.map(element => {
+        return {
+            id: element.id,
+            type: element.type,
+            question: element.question,
+            details: element.details,
+            required: element.required == 1 ? true : false,
+            options: element.options,
+            answer: element.getAnswer()
+        };
+    });
+}
+
+async function submitAnswer(formId, formHash, isAnonim) {
+    let answers = submitFormElements(formElements);
+    answers = JSON.stringify(answers);
+
+    console.log(answers);
+    //return;
+
+    //Set UID to 0 if user is not logged in
+    var uid;
+    var userIp;
+    if (isAnonim == 0) {
+        uid = await getUid();
+        userIp = await getIp();
+        //console.log("User: " + userIp);
+    } else {
+        console.log("Anonim");
+        uid = 0;
+        userIp = '0.0.0.0';
+    }
+
+    const response = await $.ajax({
+        type: "POST",
+        url: "../formManager.php",
+        data: { mode: "submitAnswer", uid: uid, userIp: userIp, id: formId, formHash: formHash, answers: answers },
+    });
+
+    console.log(response);
+
+    if (response == 500) {
+        alert("Nem megengedett karakterek a válaszban!");
+    } else if (response == 200) {
+        clearUserCookie();
+        if (formId != -1) {
+            window.location.href = "viewform.php?formId=" + formId + "&success";
+        } else {
+            window.location.href = "viewform.php?form=" + formHash + "&success";
+        }
+    } else {
+        alert("Sikertelen leadás");
     }
 }

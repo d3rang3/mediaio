@@ -174,7 +174,7 @@ error_reporting(E_ERROR | E_PARSE);
 
 
     var cardButton = document.createElement("button");
-    cardButton.className = "btn btn-primary";
+    cardButton.className = "btn";
     cardButton.innerHTML = "<i class='fas fa-eye'></i>";
     if (formStatus == "Lezárt") {
       cardButton.disabled = true;
@@ -186,20 +186,20 @@ error_reporting(E_ERROR | E_PARSE);
 
     <?php if (isset($_SESSION['userId']) && in_array("admin", $_SESSION["groups"])) { ?>
       var editButton = document.createElement("button");
-      editButton.className = "btn btn-secondary noprint";
+      editButton.className = "btn noprint";
       editButton.innerHTML = "<i class='fas fa-pen fa-lg'></i>";
       editButton.onclick = function () { editForm(formId) };
       ButtonHolder.appendChild(editButton);
 
       var answersButton = document.createElement("button");
-      answersButton.className = "btn btn-secondary noprint";
+      answersButton.className = "btn noprint";
       answersButton.innerHTML = "<i class='fas fa-align-left fa-lg'></i>";
       answersButton.onclick = function () { window.location.href = "formanswers.php?formId=" + formId };
       ButtonHolder.appendChild(answersButton);
 
       var deleteButton = document.createElement("button");
-      deleteButton.className = "btn btn-danger noprint";
-      deleteButton.innerHTML = "<i class='fas fa-trash-alt fa-lg'></i>";
+      deleteButton.className = "btn noprint";
+      deleteButton.innerHTML = "<i class='fas fa-trash-alt fa-lg' style='color: red;'></i>";
       deleteButton.onclick = function () { showDeleteModal(formId) };
       ButtonHolder.appendChild(deleteButton);
     <?php } ?>

@@ -1,5 +1,5 @@
 <!-- Info toast -->
-<div class="toast-container bottom-0 start-50 translate-middle-x p-3" style="z-index: 9999;">
+<div class="toast-container fixed-bottom start-50 translate-middle-x p-3" style="z-index: 9999;">
     <div class="toast" id="infoToast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
             <img src="../logo.ico" class="rounded me-2" alt="..." style="height: 20px; filter: invert(1);">
@@ -67,11 +67,10 @@
             </div>
             <div class="modal-body">
                 <label for="cars">Form állapota:</label>
-                <select class="form-select form-select-sm" id="formState" name="formState">
-                    <option value="0">Nem fogad válaszokat</option>
-                    <option value="1">Fogad válaszokat</option>
-                </select>
-                </br>
+                <div class="form-check form-switch mb-3">
+                    <input type="checkbox" class="form-check-input" id="isAcceptingAnswers" data-setting="Anonim">
+                    <label class="form-check-label" for="isAcceptingAnswers">Fogad válaszokat</label>
+                </div>
                 <div class="mb-3" id="accessForm">
                     Elérhetőség:
                     <select class="form-select form-select-sm mb-1" id="accessRestrict" name="accessRestrict">
@@ -109,6 +108,8 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button class="btn" data-bs-target="#delete_Modal" data-bs-toggle="modal"><i
+                        class='fas fa-trash-alt fa-lg'></i></button>
                 <button class="btn btn-success col-lg-auto mb-1" id="save" data-bs-dismiss="modal"
                     onclick="saveForm(false)">Mentés</button>
                 <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Mégse</button>
