@@ -15,16 +15,12 @@ error_reporting(E_ERROR | E_PARSE);
     <!-- Load Menu and Index table Icons and links -->
     <script type="text/javascript">
       window.onload = async function () {
-      window.onload = async function () {
 
         menuItems = importItem("./utility/menuitems.json");
         drawMenuItemsLeft('index', menuItems);
 
         drawMenuItemsRight('index', menuItems);
         drawIndexTable(menuItems, 0);
-
-        //Load the badges
-        loadBadges();
 
         //Load the badges
         loadBadges();
@@ -66,7 +62,6 @@ error_reporting(E_ERROR | E_PARSE);
 
     <h1 class="rainbow">Árpád Média IO</h1>
     <div class="row justify-content-center mainRow1 ab"
-      style="text-align: center; width:100%; max-width: 1000px; margin: 0 auto;" id="take-retrieve"></div><br>
       style="text-align: center; width:100%; max-width: 1000px; margin: 0 auto;" id="take-retrieve"></div><br>
     <div class="row justify-content-center mainRow2 ab"
       style="text-align: center; width:100%; max-width: 1000px; margin: 0 auto;"></div><br>
@@ -116,27 +111,6 @@ error_reporting(E_ERROR | E_PARSE);
             form.innerHTML = '<button type="submit" class="btn btn-primary btn-sm">Vigyél oda!</button>';
             document.getElementById("service_toast_footer").prepend(form);
           }
-      async function loadBadges() {
-        const response = await $.ajax({
-          url: "../ItemManager.php",
-          type: "POST",
-          data: {
-            mode: "getProfileItemCounts",
-          },
-        });
-
-        console.log(response);
-        let dataArray = response.split(",");
-        //Set the usercheck count
-        <?php if (isset($_GET["login"]) && $_GET["login"] == "success" && in_array("admin", $_SESSION["groups"])) { ?>
-          if (dataArray[1] > 0) {
-            document.getElementById("usercheckItemCount").innerHTML = dataArray[1] + " esemény vár elfogadásra!";
-            let form = document.createElement('form');
-            form.action = "../profile/transConfirm";
-            form.style = "width: fit-content; display: inline-block;";
-            form.innerHTML = '<button type="submit" class="btn btn-primary btn-sm">Vigyél oda!</button>';
-            document.getElementById("service_toast_footer").prepend(form);
-          }
           const toastLiveExample = document.getElementById('service_toast');
           const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample, { delay: 8000 });
           toastBootstrap.show();
@@ -152,21 +126,7 @@ error_reporting(E_ERROR | E_PARSE);
         divToAppend.classList.add("position-relative");
         divToAppend.appendChild(badge);
       }
-        //Set amount of items the user hold as a badge
-        const badge = document.createElement('span');
-        badge.className = "position-absolute top-0 start-100 translate-middle badge rounded-pill";
-        badge.classList.add(dataArray[2] != 0 ? "bg-primary" : "bg-secondary");
-        badge.innerHTML = dataArray[2];
-
-        const menurow = document.getElementById("take-retrieve");
-        const divToAppend = menurow.lastChild.firstChild;
-        divToAppend.classList.add("position-relative");
-        divToAppend.appendChild(badge);
-      }
     </script>
-
-  </body>
-<?php }
 
   </body>
 <?php }
@@ -222,41 +182,10 @@ else { ?>
           <!-- Messages appear here -->
           <h3 id="errorbox"></h3>
 
-          <p class="Footer">Made With 💙 by <a href="https://github.com/gutasiadam/mediaio">Árpád Média</a> - <i>Ver: 24w36 - AMOK</i></p>
+          <p class="Footer">Made With 💙 by <a href="https://github.com/gutasiadam/mediaio">Árpád Média</a> - <i>Ver: 24w38 - AMOK</i></p>
         </div>
       </footer>
     </div>
-
-  </body>
-  <script>
-    $(".input").focusin(function () {
-      $(this).find("span").animate({
-        "opacity": "0"
-      }, 200);
-    });
-    $(".input").focusout(function () {
-      $(this).find("span").animate({
-        "opacity": "1"
-      }, 300);
-    });
-    $(".login").submit(function () {
-      $(this).find(".submit i").removeAttr('class').addClass("fa fa-check").css({
-        "color": "#fff"
-      });
-      $(".submit").css({
-        "background": "#2ecc71",
-        "border-color": "#2ecc71"
-      });
-      $(".feedback").show().animate({
-        "opacity": "1",
-      }, 400);
-      $("input").css({
-        "border-color": "#2ecc71"
-      });
-      $(".login").submit();
-    });
-  </script>
-<?php }
 
   </body>
   <script>

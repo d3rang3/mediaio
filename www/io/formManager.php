@@ -52,7 +52,6 @@ class formManager
   {
     $sql = "SELECT * FROM forms WHERE AccessRestrict='0';";
     if (isset($_SESSION['userId'])) {
-    if (isset($_SESSION['userId'])) {
       $sql = "SELECT * FROM forms WHERE AccessRestrict IN ('0', '2');";
       if (in_array("admin", $_SESSION['groups'])) {
         $sql = "SELECT * FROM forms";
@@ -62,18 +61,15 @@ class formManager
     $result = $connection->query($sql);
     $connection->close();
     $forms = $result->fetch_all(MYSQLI_ASSOC);
-    $forms = $result->fetch_all(MYSQLI_ASSOC);
     echo json_encode($forms);
   }
 
-  static function saveFormSettings($form, $id, $formHash)
   static function saveFormSettings($form, $id, $formHash)
   {
     if (in_array("admin", $_SESSION['groups'])) {
       $form = json_decode($form, true);
       $form['elements'] = json_encode($form['elements'], JSON_UNESCAPED_UNICODE);
 
-      if ($id == null) {
       if ($id == null) {
         $id = formManager::getIdFromHash($formHash);
       }
@@ -83,45 +79,6 @@ class formManager
       $connection->query($sql);
       $connection->close();
       echo 200;
-    }
-  }
-
-  static function saveFormElements($formElements, $formHeader, $id, $formHash)
-  {
-    try {
-      if (in_array("admin", $_SESSION['groups'])) {
-        $formElements = json_decode($formElements, true);
-        $formElements = json_encode($formElements, JSON_UNESCAPED_UNICODE);
-
-        if ($id == null) {
-          $id = formManager::getIdFromHash($formHash);
-        }
-
-        // Prepare an SQL statement to prevent SQL injection
-        $sql = "UPDATE forms SET Header=?, Data=? WHERE ID=?;";
-        $connection = Database::runQuery_mysqli();
-        $stmt = $connection->prepare($sql);
-
-        // Bind parameters to the prepared statement
-        $stmt->bind_param("ssi", $formHeader, $formElements, $id);
-
-        // Execute the statement and check for success
-        if (!$stmt->execute()) {
-          throw new \Exception("Failed to update form.");
-        }
-
-        $stmt->close();
-        $connection->close();
-        echo 200;
-      } else {
-        throw new \Exception("User not authorized.");
-      }
-    } catch (\Exception $e) {
-      // Log the error or handle it as per your error handling policy
-      error_log($e->getMessage());
-      // Return an error code or message to the user
-      http_response_code(500); // Internal Server Error
-      echo 403;
     }
   }
 
@@ -203,9 +160,7 @@ class formManager
   {
     if ($id != null) {
       if (isset($_SESSION['userId']) && in_array("admin", $_SESSION['groups'])) {
-      if (isset($_SESSION['userId']) && in_array("admin", $_SESSION['groups'])) {
         $sql = "SELECT * FROM forms WHERE ID=" . $id . ";";
-      } else if (isset($_SESSION['userId'])) {
       } else if (isset($_SESSION['userId'])) {
         $sql = "SELECT * FROM forms WHERE ID=" . $id . " AND AccessRestrict IN ('0','2') AND Status='1';";
       } else {
@@ -221,7 +176,6 @@ class formManager
     //If no rows are returned, return 404
     if ($row == null) {
       echo 404;
-      return;
       return;
     }
     echo json_encode($row);
@@ -265,17 +219,6 @@ class formManager
 
     $connection->close();
     echo 200;
-  }
-
-  static function deleteAnswer($id)
-  {
-    if (in_array("admin", $_SESSION['groups'])) {
-      $sql = "DELETE FROM formanswers WHERE ID=" . $id . ";";
-      $connection = Database::runQuery_mysqli();
-      $connection->query($sql);
-      $connection->close();
-      echo 200;
-    }
   }
 
   static function deleteAnswer($id)
@@ -334,7 +277,6 @@ class formManager
 
 
 if (isset($_POST['mode'])) {
-if (isset($_POST['mode'])) {
 
   //Set timezone to the computer's timezone.
   date_default_timezone_set('Europe/Budapest');
@@ -355,26 +297,7 @@ if (isset($_POST['mode'])) {
     case 'saveFormElements':
       echo formManager::saveFormElements($_POST['formElements'], $_POST['formHeader'], $_POST['formId'], $_POST['formHash']);
       break;
-  switch ($_POST['mode']) {
-    case 'createNewForm':
-      echo formManager::createNewForm();
-      break;
 
-    case 'listForms':
-      echo formManager::listForms();
-      break;
-
-    case 'save':
-      echo formManager::saveFormSettings($_POST['form'], $_POST['id'], $_POST['formHash']);
-      break;
-
-    case 'saveFormElements':
-      echo formManager::saveFormElements($_POST['formElements'], $_POST['formHeader'], $_POST['formId'], $_POST['formHash']);
-      break;
-
-    case 'changeBackground':
-      echo formManager::changeBackground($_POST['name'], $_POST['id']);
-      break;
     case 'changeBackground':
       echo formManager::changeBackground($_POST['name'], $_POST['id']);
       break;
@@ -382,13 +305,7 @@ if (isset($_POST['mode'])) {
     case 'getForm':
       echo formManager::getForm($_POST['id'], $_POST['formHash']);
       break;
-    case 'getForm':
-      echo formManager::getForm($_POST['id'], $_POST['formHash']);
-      break;
 
-    case 'getLinkHash':
-      echo formManager::getFormLinkHash($_POST['id']);
-      break;
     case 'getLinkHash':
       echo formManager::getFormLinkHash($_POST['id']);
       break;
@@ -396,14 +313,7 @@ if (isset($_POST['mode'])) {
     case 'newLinkHash':
       echo formManager::generateNewLinkHash($_POST['id']);
       break;
-    case 'newLinkHash':
-      echo formManager::generateNewLinkHash($_POST['id']);
-      break;
 
-    case 'deleteForm':
-      echo "deleteForm";
-      echo formManager::deleteForm($_POST['id']);
-      break;
     case 'deleteForm':
       echo "deleteForm";
       echo formManager::deleteForm($_POST['id']);

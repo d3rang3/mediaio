@@ -46,20 +46,16 @@ function showTable() {
 
     //Set doboz max-width
     const doboz = document.getElementById("doboz");
-    const doboz = document.getElementById("doboz");
     doboz.style.maxWidth = "1200px";
 
     //Empty table
     const headerHolder = document.getElementById("headerHolder");
-    const headerHolder = document.getElementById("headerHolder");
     headerHolder.innerHTML = "";
 
-    const answerHolder = document.getElementById("answerHolder");
     const answerHolder = document.getElementById("answerHolder");
     answerHolder.innerHTML = "";
 
     // Set form invisible
-    const formContainer = document.getElementById("form-body");
     const formContainer = document.getElementById("form-body");
     formContainer.style.display = "none";
 
@@ -124,7 +120,6 @@ function showTable() {
 
     function createRow(formAnswers, formElements) {
         const tr = document.createElement("tr");
-        const tr = document.createElement("tr");
 
         var idTd = document.createElement("td");
         idTd.innerHTML = formAnswers.ID;
@@ -132,24 +127,13 @@ function showTable() {
 
         const formAnswersData = JSON.parse(formAnswers.UserAnswers);
 
-        const formAnswersData = JSON.parse(formAnswers.UserAnswers);
-
         // Create cells
         for (var j = 0; j < formElements.length; j++) {
             var td = document.createElement("td");
             var elementAnswer = getElementAnswer(formElements[j], formAnswersData);
-            var elementAnswer = getElementAnswer(formElements[j], formAnswersData);
             td.innerHTML = elementAnswer;
             tr.appendChild(td);
         }
-
-        const deleteAnswerButton = document.createElement("button");
-        deleteAnswerButton.innerHTML = `<i class="fas fa-trash"></i>`;
-        deleteAnswerButton.className = "btn btn-danger";
-        deleteAnswerButton.onclick = function () {
-            deleteAnswer(formAnswers.ID);
-        }
-        tr.appendChild(deleteAnswerButton);
 
         const deleteAnswerButton = document.createElement("button");
         deleteAnswerButton.innerHTML = `<i class="fas fa-trash"></i>`;
@@ -188,23 +172,16 @@ function showTable() {
         }
 
         return elementAnswer || '<i>Nem megválaszolt</i>';
-
-        return elementAnswer || '<i>Nem megválaszolt</i>';
     }
 
     function getScaleGridAnswer(submission) {
-        let answer = "";
         let answer = "";
 
         function getGrade(sub) {
             const gradeIndex = sub.answers.findIndex(answer => answer === 1);
             return gradeIndex >= 0 ? gradeIndex + 1 : 0;
-            const gradeIndex = sub.answers.findIndex(answer => answer === 1);
-            return gradeIndex >= 0 ? gradeIndex + 1 : 0;
         }
 
-        for (let i = 0; i < submission.length; i++) {
-            answer += `${submission[i].label}: ${getGrade(submission[i])}<br>`;
         for (let i = 0; i < submission.length; i++) {
             answer += `${submission[i].label}: ${getGrade(submission[i])}<br>`;
         }
@@ -225,27 +202,6 @@ function showTable() {
     var table = document.getElementById("answersTable");
     table.style.display = "table";
 
-}
-
-
-async function deleteAnswer(id) {
-    console.log("Deleting answer: " + id);
-
-    const response = await $.ajax({
-        url: "../formManager.php",
-        type: "POST",
-        data: {
-            mode: "deleteAnswer",
-            id: id
-        }
-    });
-
-    if (response == 200) {
-        alert("Válasz törölve");
-        showTable();
-    } else {
-        alert("Hiba történt a válasz törlése közben");
-    }
 }
 
 
