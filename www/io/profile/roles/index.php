@@ -22,6 +22,7 @@ if (!in_array("system", $_SESSION["groups"])) {
 
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
   <a class="navbar-brand" href="../index.php">
+  <a class="navbar-brand" href="../index.php">
     <img src="../../utility/logo2.png" height="50">
   </a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
@@ -47,6 +48,8 @@ if (!in_array("system", $_SESSION["groups"])) {
     <form method='post' class="form-inline my-2 my-lg-0" action=../../utility/userLogging.php>
       <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
         type="submit">Kijelentkezés</button>
+      <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
+        type="submit">Kijelentkezés</button>
       <script type="text/javascript">
         window.onload = function () {
           display = document.querySelector('#time');
@@ -62,7 +65,7 @@ if (!in_array("system", $_SESSION["groups"])) {
 <body>
 
   <!-- Info toast -->
-  <div class="toast-container top-0 start-50 translate-middle-x p-3" style="z-index: 9999;">
+  <div class="toast-container fixed-bottom start-50 translate-middle-x p-3" style="z-index: 9999;">
     <div class="toast" id="infoToast" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="toast-header">
         <img src="../../logo.ico" class="rounded me-2" alt="..." style="height: 20px; filter: invert(1);">
@@ -177,7 +180,10 @@ if (!in_array("system", $_SESSION["groups"])) {
         if (response.status == 200) {
           successToast('Sikeres mentés!');
           loadPage();
+          successToast('Sikeres mentés!');
+          loadPage();
         } else {
+          errorToast('Hiba történt a mentés során!');
           errorToast('Hiba történt a mentés során!');
         }
       }).catch(() => {
@@ -192,6 +198,7 @@ if (!in_array("system", $_SESSION["groups"])) {
     let data = await fetchdata();
 
     let container = document.querySelector('.container');
+    container.innerHTML = '';
     container.innerHTML = '';
     for (let i = 0; i < data.length; i++) {
       let user = data[i];
@@ -245,6 +252,7 @@ if (!in_array("system", $_SESSION["groups"])) {
     let roles = [
       { value: 'média', text: 'Médiás' },
       { value: 'studio', text: 'Stúdiós' },
+      { value: 'event', text: 'Eventes' },
       { value: 'event', text: 'Eventes' },
       { value: 'admin', text: 'Vezetőségi tag' },
       { value: 'teacher', text: 'Tanár' },

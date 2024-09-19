@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-include ("header.php");
-include ("../translation.php");
+include("header.php");
+include("../translation.php");
 
 if (!isset($_SESSION["userId"])) {
    echo "<script>window.location.href = '../index.php?error=AccessViolation';</script>";
@@ -15,6 +15,7 @@ if (!in_array("admin", $_SESSION["groups"])) {
 ?>
 <html>
 
+<script src="frontEnd/formElements.js" type="text/javascript"></script>
 
 
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
@@ -55,6 +56,8 @@ if (!in_array("admin", $_SESSION["groups"])) {
    </div>
 </nav>
 
+<?php include("modals.php"); ?>
+
 <div class="centerTopAccessories">
    <button class="btn" onclick="window.location.href = 'formeditor.php?formId=' + <?php echo $_GET['formId'] ?>"><i
          class='fas fa-edit fa-lg' style="color: fff"></i></button>
@@ -74,6 +77,7 @@ if (!in_array("admin", $_SESSION["groups"])) {
             </ul>
          </div>
          <button class="btn btn-success" onclick="showTable()"><i class="fas fa-table fa-lg"></i></button>
+         <button class="btn" onclick="createXLSX()"><i class="far fa-share-square fa-lg"></i></button>
 
       </div>
       <div class="justify-content-center">
@@ -96,29 +100,46 @@ if (!in_array("admin", $_SESSION["groups"])) {
 </body>
 
 <script src="frontEnd/fetchData.js" type="text/javascript"></script>
-<script src="frontEnd/elementGenerator.js" type="text/javascript"></script>
 <script src="frontEnd/formAnswers.js" type="text/javascript"></script>
 
 <script>
-   var formAnswers = [];
-   var currentForm;
+   let currentFormState = null;
+
+   let formId = <?php if (isset($_GET['formId'])) {
+      echo $_GET['formId'];
+   } else {
+      echo '-1';
+   } ?>;
+   let formHash = <?php if (isset($_GET['form'])) {
+      echo '"' . $_GET['form'] . '"';
+   } else {
+      echo 'null';
+   } ?>;
 
    $(document).ready(function () {
       //Load form from server
-      let formId = <?php if (isset($_GET['formId'])) {
-         echo $_GET['formId'];
-      } else {
-         echo '-1';
-      } ?>;
-      let formHash = <?php if (isset($_GET['form'])) {
-         echo '"' . $_GET['form'] . '"';
-      } else {
-         echo 'null';
-      } ?>;
 
       async function loadPageAsync() {
-         var form = await FetchData(formId, formHash);
-         currentForm = await loadPage(form, "answers");
+         currentFormState = await FetchData(formId, formHash);
+         document.getElementById("form_name").innerHTML = currentFormState.Name;
+
+         // Set backgroud 
+         const style = document.createElement('style');
+         style.innerHTML = `
+         body::before {
+         content: "";
+         position: fixed;
+         top: 0;
+         right: 0;
+         bottom: 0;
+         left: 0;
+         background-image: url(../forms/backgrounds/${currentFormState.Background});
+         background-size: cover;
+         background-position: center;
+         z-index: -1;
+         }`;
+         document.head.appendChild(style);
+
          await fetchAnswers(formId, formHash);
          showTable();
       }
@@ -141,6 +162,20 @@ if (!in_array("admin", $_SESSION["groups"])) {
             buttons[1].classList.add("btn-success");
             break;
       }
+   }
+
+   async function createXLSX() {
+      simpleToast("Ez a funkció még fejlesztés alatt áll!");
+      return;
+      // Send request to backend to create xlsx file
+      const response = await $.ajax({
+         type: "POST",
+         url: "../formManager.php",
+         data: { mode: "generateXlsx", id: formId, hash: formHash },
+      });
+
+      // Download the file
+      console.log(response);
    }
 
 </script>

@@ -149,6 +149,14 @@ async function searchItem(item) {
         },
     });
 
+    const users = JSON.parse(await $.ajax({
+        url: "../../Accounting.php",
+        type: "POST",
+        data: {
+            mode: "getPublicUserInfo",
+        },
+    }));
+
     document.getElementById("search").value = "";
     document.getElementById("search").dispatchEvent(new Event("input"));
 
@@ -209,8 +217,10 @@ async function searchItem(item) {
         const date = document.createElement("td");
         date.textContent = historyItem.Date;
 
+        let userName = users.find(user => user.idUsers == historyItem.UserID).usernameUsers;
+
         const user = document.createElement("td");
-        user.textContent = historyItem.User;
+        user.textContent = userName;
 
         const action = document.createElement("td");
         action.textContent = historyItem.Event;

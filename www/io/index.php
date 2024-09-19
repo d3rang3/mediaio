@@ -182,7 +182,7 @@ else { ?>
           <!-- Messages appear here -->
           <h3 id="errorbox"></h3>
 
-          <p class="Footer">Made With 💙 by <a href="https://github.com/gutasiadam/mediaio">Árpád Média</a> - <i>Ver: 24w32 - AMOK</i></p>
+          <p class="Footer">Made With 💙 by <a href="https://github.com/gutasiadam/mediaio">Árpád Média</a> - <i>Ver: 24w38 - AMOK</i></p>
         </div>
       </footer>
     </div>
