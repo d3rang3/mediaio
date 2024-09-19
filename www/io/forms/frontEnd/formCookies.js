@@ -86,3 +86,30 @@ async function getFormJson(formId, formHash) {
     }
     return formData;
 }
+
+
+// Show info message about using cookies
+function cookiesAcknowledged() {
+    // Save cookie, set expire date to 1 month
+    const d = new Date();
+    d.setTime(d.getTime() + (30 * 24 * 60 * 60 * 1000));
+    const expires = `expires=${d.toUTCString()}`;
+    document.cookie = `cookiesAcknowledged=true;${expires};path=/; `;
+}
+
+function getCookie(name) {
+    var name = name + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            var cookie = c.substring(name.length, c.length);
+            return cookie;
+        }
+    }
+    return null;
+}
