@@ -20,6 +20,7 @@ async function FetchData(formId, formHash) {
 
             if (response == 404) {
                 window.location.href = "index.php?invalidID";
+                window.location.href = "index.php?invalidID";
             }
 
             var form = JSON.parse(response);
@@ -47,7 +48,23 @@ async function fetchAnswers(formId, formHash) {
             url: "../formManager.php",
             data: data
         });
+    try {
+        let data = { mode: "getFormAnswers" };
+        if (formId != -1) {
+            data.id = formId;
+        } else {
+            data.formHash = formHash;
+        }
 
+        let response = await $.ajax({
+            type: "POST",
+            url: "../formManager.php",
+            data: data
+        });
+
+        if (response == 404) {
+            window.location.href = "index.php?invalidID";
+        }
         if (response == 404) {
             window.location.href = "index.php?invalidID";
         }
@@ -62,10 +79,25 @@ async function fetchAnswers(formId, formHash) {
             let li = document.createElement("li");
             li.classList.add("dropdown-item");
             li.style.cursor = "pointer";
+            let li = document.createElement("li");
+            li.classList.add("dropdown-item");
+            li.style.cursor = "pointer";
 
             li.onclick = function () {
                 showFormAnswers(id);
             };
+            li.onclick = function () {
+                showFormAnswers(id);
+            };
+
+            li.innerHTML = `${i + 1}. válasz</a>`;
+            dropdown.appendChild(li);
+        });
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
 
             li.innerHTML = `${i + 1}. válasz</a>`;
             dropdown.appendChild(li);

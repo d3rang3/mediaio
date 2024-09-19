@@ -22,6 +22,7 @@ if (!in_array("system", $_SESSION["groups"])) {
 
 <nav class="navbar sticky-top navbar-expand-lg navbar-dark bg-dark">
   <a class="navbar-brand" href="../index.php">
+  <a class="navbar-brand" href="../index.php">
     <img src="../../utility/logo2.png" height="50">
   </a>
   <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
@@ -45,6 +46,8 @@ if (!in_array("system", $_SESSION["groups"])) {
       </li>
     </ul>
     <form method='post' class="form-inline my-2 my-lg-0" action=../../utility/userLogging.php>
+      <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
+        type="submit">Kijelentkezés</button>
       <button id="logoutBtn" class="btn btn-danger my-2 my-sm-0 logout-button" name='logout-submit'
         type="submit">Kijelentkezés</button>
       <script type="text/javascript">
@@ -177,7 +180,10 @@ if (!in_array("system", $_SESSION["groups"])) {
         if (response.status == 200) {
           successToast('Sikeres mentés!');
           loadPage();
+          successToast('Sikeres mentés!');
+          loadPage();
         } else {
+          errorToast('Hiba történt a mentés során!');
           errorToast('Hiba történt a mentés során!');
         }
       }).catch(() => {
@@ -192,6 +198,7 @@ if (!in_array("system", $_SESSION["groups"])) {
     let data = await fetchdata();
 
     let container = document.querySelector('.container');
+    container.innerHTML = '';
     container.innerHTML = '';
     for (let i = 0; i < data.length; i++) {
       let user = data[i];
@@ -245,6 +252,7 @@ if (!in_array("system", $_SESSION["groups"])) {
     let roles = [
       { value: 'média', text: 'Médiás' },
       { value: 'studio', text: 'Stúdiós' },
+      { value: 'event', text: 'Eventes' },
       { value: 'event', text: 'Eventes' },
       { value: 'admin', text: 'Vezetőségi tag' },
       { value: 'teacher', text: 'Tanár' },
